@@ -319,6 +319,17 @@ test('formatModelName short mode strips context suffix and Claude prefix', () =>
   assert.equal(formatModelName('claude Opus 4.5', 'short'), 'Opus 4.5');
 });
 
+test('formatModelName override replaces model name entirely', () => {
+  // Override takes precedence over format
+  assert.equal(formatModelName('Claude Opus 4.5', 'full', "zane's intelligent opus"), "zane's intelligent opus");
+  assert.equal(formatModelName('Claude Opus 4.5', 'compact', 'My Model'), 'My Model');
+  assert.equal(formatModelName('Claude Opus 4.5', 'short', 'Custom'), 'Custom');
+  assert.equal(formatModelName('Claude Opus 4.5', undefined, 'Override'), 'Override');
+  // Empty override is treated as unset (falls through to format)
+  assert.equal(formatModelName('Claude Opus 4.5 (1M context)', 'compact', ''), 'Claude Opus 4.5');
+  assert.equal(formatModelName('Opus 4.6', 'full', ''), 'Opus 4.6');
+});
+
 test('bedrock model detection recognizes bedrock ids', () => {
   assert.ok(isBedrockModelId('anthropic.claude-3-5-sonnet-20240620-v1:0'));
   assert.ok(isBedrockModelId('eu.anthropic.claude-opus-4-5-20251101-v1:0'));

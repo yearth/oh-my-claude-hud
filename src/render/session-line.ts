@@ -12,7 +12,7 @@ const DEBUG = process.env.DEBUG?.includes('claude-hud') || process.env.DEBUG ===
  * Used for compact layout mode.
  */
 export function renderSessionLine(ctx: RenderContext): string {
-  const model = formatModelName(getModelName(ctx.stdin), ctx.config?.display?.modelFormat);
+  const model = formatModelName(getModelName(ctx.stdin), ctx.config?.display?.modelFormat, ctx.config?.display?.modelOverride);
 
   const rawPercent = getContextPercent(ctx.stdin);
   const bufferedPercent = getBufferedPercent(ctx.stdin);

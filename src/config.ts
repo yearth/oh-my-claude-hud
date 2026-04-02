@@ -90,6 +90,7 @@ export interface HudConfig {
     sevenDayThreshold: number;
     environmentThreshold: number;
     modelFormat: ModelFormatMode;
+    modelOverride: string;
     customLine: string;
   };
   colors: HudColorOverrides;
@@ -128,6 +129,7 @@ export const DEFAULT_CONFIG: HudConfig = {
     sevenDayThreshold: 80,
     environmentThreshold: 0,
     modelFormat: 'full',
+    modelOverride: '',
     customLine: '',
   },
   colors: {
@@ -340,6 +342,9 @@ export function mergeConfig(userConfig: Partial<HudConfig>): HudConfig {
     modelFormat: validateModelFormat(migrated.display?.modelFormat)
       ? migrated.display.modelFormat
       : DEFAULT_CONFIG.display.modelFormat,
+    modelOverride: typeof migrated.display?.modelOverride === 'string'
+      ? migrated.display.modelOverride.slice(0, 80)
+      : DEFAULT_CONFIG.display.modelOverride,
     customLine: typeof migrated.display?.customLine === 'string'
       ? migrated.display.customLine.slice(0, 80)
       : DEFAULT_CONFIG.display.customLine,

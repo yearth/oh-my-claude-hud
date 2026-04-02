@@ -167,13 +167,20 @@ export function stripContextSuffix(name: string): string {
 }
 
 /**
- * Formats a model name according to the user's chosen display format.
+ * Formats a model name according to the user's chosen display settings.
+ *
+ * When `override` is set, it replaces the model name entirely.
+ * Otherwise, `format` controls how the raw name is abbreviated:
  *
  *   full:    Return raw name unchanged   (e.g. "Opus 4.6 (1M context)")
  *   compact: Strip context-window suffix (e.g. "Opus 4.6")
  *   short:   Strip context suffix AND leading "Claude " prefix (e.g. "Opus 4.6")
  */
-export function formatModelName(name: string, format?: ModelFormatMode): string {
+export function formatModelName(name: string, format?: ModelFormatMode, override?: string): string {
+  if (override) {
+    return override;
+  }
+
   if (!format || format === 'full') {
     return name;
   }

@@ -9,7 +9,7 @@ export function renderProjectLine(ctx: RenderContext): string | null {
   const parts: string[] = [];
 
   if (display?.showModel !== false) {
-    const model = formatModelName(getModelName(ctx.stdin), ctx.config?.display?.modelFormat);
+    const model = formatModelName(getModelName(ctx.stdin), ctx.config?.display?.modelFormat, ctx.config?.display?.modelOverride);
     const providerLabel = getProviderLabel(ctx.stdin);
     const showUsage = display?.showUsage !== false;
     const hasApiKey = !!process.env.ANTHROPIC_API_KEY;

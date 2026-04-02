@@ -135,6 +135,24 @@ test('mergeConfig falls back to full for invalid modelFormat', () => {
   assert.equal(mergeConfig({ display: { modelFormat: null } }).display.modelFormat, 'full');
 });
 
+test('mergeConfig defaults modelOverride to empty string', () => {
+  const config = mergeConfig({});
+  assert.equal(config.display.modelOverride, '');
+});
+
+test('mergeConfig preserves modelOverride and truncates long values', () => {
+  const override = 'x'.repeat(120);
+  const config = mergeConfig({ display: { modelOverride: override } });
+  assert.equal(config.display.modelOverride.length, 80);
+  assert.equal(config.display.modelOverride, override.slice(0, 80));
+});
+
+test('mergeConfig falls back to empty for non-string modelOverride', () => {
+  assert.equal(mergeConfig({ display: { modelOverride: 123 } }).display.modelOverride, '');
+  assert.equal(mergeConfig({ display: { modelOverride: null } }).display.modelOverride, '');
+  assert.equal(mergeConfig({ display: { modelOverride: true } }).display.modelOverride, '');
+});
+
 test('getConfigPath respects CLAUDE_CONFIG_DIR', async () => {
   const originalConfigDir = process.env.CLAUDE_CONFIG_DIR;
   const customConfigDir = await mkdtemp(path.join(tmpdir(), 'claude-hud-config-dir-'));

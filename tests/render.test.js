@@ -42,6 +42,7 @@ function baseContext() {
     hooksCount: 0,
     sessionDuration: '',
     gitStatus: null,
+    worktreeInfo: null,
     usageData: null,
     memoryUsage: null,
     config: {
@@ -49,7 +50,7 @@ function baseContext() {
       showSeparators: false,
       pathLevels: 1,
       elementOrder: ['project', 'context', 'usage', 'memory', 'environment', 'tools', 'agents', 'todos'],
-      gitStatus: { enabled: true, showDirty: true, showAheadBehind: false, showFileStats: false, pushWarningThreshold: 0, pushCriticalThreshold: 0 },
+      gitStatus: { enabled: true, showDirty: true, showAheadBehind: false, showFileStats: false, showWorktree: false, pushWarningThreshold: 0, pushCriticalThreshold: 0 },
       display: { showModel: true, showProject: true, showContextBar: true, contextValue: 'percent', showConfigCounts: true, showCost: false, showDuration: true, showSpeed: false, showTokenBreakdown: true, showUsage: true, usageBarEnabled: false, showTools: true, showAgents: true, showTodos: true, showSessionTokens: false, showSessionName: false, showClaudeCodeVersion: false, showMemoryUsage: false, showOutputStyle: false, autocompactBuffer: 'enabled', usageThreshold: 0, sevenDayThreshold: 80, environmentThreshold: 0, customLine: '' },
       colors: {
         context: 'green',
@@ -1607,6 +1608,44 @@ test('renderProjectLine colors ahead count at critical threshold', () => {
 
   const line = renderProjectLine(ctx);
   assert.ok(line?.includes('\x1b[31m↑25\x1b[0m'), 'ahead count should use critical color');
+});
+
+test('renders worktree cell when worktreeInfo is set', () => {
+  const ctx = baseContext();
+  ctx.gitStatus = { branch: 'main', isDirty: false, ahead: 0, behind: 0 };
+  ctx.worktreeInfo = { repoName: 'my-project', worktreeName: 'base' };
+  ctx.config.gitStatus.showWorktree = true;
+  const output = stripAnsi(renderProjectLine(ctx));
+  assert.ok(output.includes('my-project:(base)'), `Expected 'my-project:(base)' in: ${output}`);
+});
+
+test('renders sub-worktree name', () => {
+  const ctx = baseContext();
+  ctx.gitStatus = { branch: 'feature-auth', isDirty: false, ahead: 0, behind: 0 };
+  ctx.worktreeInfo = { repoName: 'my-project', worktreeName: 'feature-auth' };
+  ctx.config.gitStatus.showWorktree = true;
+  const output = stripAnsi(renderProjectLine(ctx));
+  assert.ok(output.includes('my-project:(feature-auth)'), `Expected 'my-project:(feature-auth)' in: ${output}`);
+});
+
+test('does not render worktree cell when showWorktree is false', () => {
+  const ctx = baseContext();
+  ctx.gitStatus = { branch: 'main', isDirty: false, ahead: 0, behind: 0 };
+  ctx.worktreeInfo = { repoName: 'my-project', worktreeName: 'base' };
+  ctx.config.gitStatus.showWorktree = false;
+  const output = stripAnsi(renderProjectLine(ctx));
+  assert.ok(!output.includes('my-project:(base)'), `Expected no worktree cell in: ${output}`);
+});
+
+test('does not render worktree cell when worktreeInfo is null', () => {
+  const ctx = baseContext();
+  ctx.gitStatus = { branch: 'main', isDirty: false, ahead: 0, behind: 0 };
+  ctx.worktreeInfo = null;
+  ctx.config.gitStatus.showWorktree = true;
+  const output = stripAnsi(renderProjectLine(ctx));
+  // git:(main) is expected; no extra worktree segment should appear after the branch
+  const gitMatch = output.match(/git:\(([^)]+)\)/);
+  assert.ok(gitMatch && gitMatch[1] === 'main', `Expected git:(main) only, got: ${output}`);
 });
 
 test('renderGitFilesLine renders tracked files with per-file line diffs', () => {

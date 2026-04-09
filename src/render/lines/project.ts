@@ -45,6 +45,13 @@ export function renderProjectLine(ctx: RenderContext): string | null {
     const linkedBranch = ctx.gitStatus.branchUrl ? hyperlink(ctx.gitStatus.branchUrl, coloredBranch) : coloredBranch;
     const gitInner: string[] = [linkedBranch];
 
+    const showWorktree = gitConfig?.showWorktree ?? true;
+    if (showWorktree && ctx.worktreeInfo) {
+      const { repoName, worktreeName } = ctx.worktreeInfo;
+      const worktreeCell = gitColor(`\uF0425 ${repoName}:(${worktreeName})`, colors);
+      gitInner.push(worktreeCell);
+    }
+
     if (gitConfig?.showAheadBehind) {
       if (ctx.gitStatus.ahead > 0) {
         gitInner.push(formatAheadCount(ctx.gitStatus.ahead, gitConfig, colors));

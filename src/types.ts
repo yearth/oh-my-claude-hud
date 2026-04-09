@@ -1,5 +1,5 @@
 import type { HudConfig } from './config.js';
-import type { GitStatus } from './git.js';
+import type { GitStatus, WorktreeInfo } from './git.js';
 
 export interface StdinData {
   transcript_path?: string;
@@ -107,6 +107,7 @@ export interface RenderContext {
   hooksCount: number;
   sessionDuration: string;
   gitStatus: GitStatus | null;
+  worktreeInfo: WorktreeInfo | null;
   usageData: UsageData | null;
   memoryUsage: MemoryInfo | null;
   config: HudConfig;

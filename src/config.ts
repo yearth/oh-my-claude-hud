@@ -69,6 +69,7 @@ export interface HudConfig {
     showDirty: boolean;
     showAheadBehind: boolean;
     showFileStats: boolean;
+    showWorktree: boolean;
     pushWarningThreshold: number;
     pushCriticalThreshold: number;
   };
@@ -114,6 +115,7 @@ export const DEFAULT_CONFIG: HudConfig = {
     showDirty: true,
     showAheadBehind: false,
     showFileStats: false,
+    showWorktree: true,
     pushWarningThreshold: 0,
     pushCriticalThreshold: 0,
   },
@@ -311,6 +313,9 @@ export function mergeConfig(userConfig: Partial<HudConfig>): HudConfig {
       : DEFAULT_CONFIG.gitStatus.showFileStats,
     pushWarningThreshold: validateCountThreshold(migrated.gitStatus?.pushWarningThreshold),
     pushCriticalThreshold: validateCountThreshold(migrated.gitStatus?.pushCriticalThreshold),
+    showWorktree: typeof migrated.gitStatus?.showWorktree === 'boolean'
+      ? migrated.gitStatus.showWorktree
+      : DEFAULT_CONFIG.gitStatus.showWorktree,
   };
 
   const display = {

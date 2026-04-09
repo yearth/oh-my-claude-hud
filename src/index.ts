@@ -2,7 +2,7 @@ import { readStdin, getUsageFromStdin } from "./stdin.js";
 import { parseTranscript } from "./transcript.js";
 import { render } from "./render/index.js";
 import { countConfigs } from "./config-reader.js";
-import { getGitStatus } from "./git.js";
+import { getGitStatus, getWorktreeInfo } from "./git.js";
 import { loadConfig } from "./config.js";
 import { parseExtraCmdArg, runExtraCmd } from "./extra-cmd.js";
 import { getClaudeCodeVersion } from "./version.js";
@@ -18,6 +18,7 @@ export type MainDeps = {
   parseTranscript: typeof parseTranscript;
   countConfigs: typeof countConfigs;
   getGitStatus: typeof getGitStatus;
+  getWorktreeInfo: typeof getWorktreeInfo;
   loadConfig: typeof loadConfig;
   parseExtraCmdArg: typeof parseExtraCmdArg;
   runExtraCmd: typeof runExtraCmd;
@@ -35,6 +36,7 @@ export async function main(overrides: Partial<MainDeps> = {}): Promise<void> {
     parseTranscript,
     countConfigs,
     getGitStatus,
+    getWorktreeInfo,
     loadConfig,
     parseExtraCmdArg,
     runExtraCmd,
@@ -72,6 +74,9 @@ export async function main(overrides: Partial<MainDeps> = {}): Promise<void> {
     const gitStatus = config.gitStatus.enabled
       ? await deps.getGitStatus(stdin.cwd)
       : null;
+    const worktreeInfo = config.gitStatus.enabled && config.gitStatus.showWorktree
+      ? await deps.getWorktreeInfo(stdin.cwd)
+      : null;
 
     // Usage comes only from Claude Code's official stdin rate_limits fields.
     let usageData: RenderContext["usageData"] = null;
@@ -103,6 +108,7 @@ export async function main(overrides: Partial<MainDeps> = {}): Promise<void> {
       hooksCount,
       sessionDuration,
       gitStatus,
+      worktreeInfo,
       usageData,
       memoryUsage,
       config,

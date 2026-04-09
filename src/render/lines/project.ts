@@ -48,7 +48,8 @@ export function renderProjectLine(ctx: RenderContext): string | null {
     const showWorktree = gitConfig?.showWorktree ?? true;
     if (showWorktree && ctx.worktreeInfo) {
       const { repoName, worktreeName } = ctx.worktreeInfo;
-      const worktreeCell = gitColor(`\uF0425 ${repoName}:(${worktreeName})`, colors);
+      // \uF0425 = nf-md-source_branch (Nerd Font Material Design Icons)
+      const worktreeCell = gitBranchColor(`\uF0425 ${repoName}:(${worktreeName})`, colors);
       gitInner.push(worktreeCell);
     }
 

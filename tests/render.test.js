@@ -1893,3 +1893,71 @@ test('renderSessionLine includes compact session token summary when enabled', ()
   const line = stripAnsi(renderSessionLine(ctx));
   assert.ok(line.includes('tok: 2k (in: 2k, out: 250)'), 'should include compact token summary');
 });
+
+// ===== Cell infrastructure tests =====
+import { renderCell } from '../dist/render/cell.js';
+
+test('renderCell returns null for unknown cell id', () => {
+  const ctx = baseContext();
+  const result = renderCell('unknown-cell-id', ctx);
+  assert.equal(result, null);
+});
+
+test('renderCell model returns model string when showModel is true', () => {
+  const ctx = baseContext();
+  ctx.stdin.model = { display_name: 'claude-opus-4-6' };
+  ctx.config.display.showModel = true;
+  const result = renderCell('model', ctx);
+  assert.ok(result !== null);
+  assert.ok(stripAnsi(result).includes('claude-opus-4-6'), `Expected model name in: ${result}`);
+});
+
+test('renderCell model returns null when showModel is false', () => {
+  const ctx = baseContext();
+  ctx.config.display.showModel = false;
+  const result = renderCell('model', ctx);
+  assert.equal(result, null);
+});
+
+test('renderCell directory returns project path', () => {
+  const ctx = baseContext();
+  ctx.stdin.cwd = '/Users/test/my-project';
+  ctx.config.display.showProject = true;
+  const result = renderCell('directory', ctx);
+  assert.ok(result !== null);
+  assert.ok(stripAnsi(result).includes('my-project'), `Expected dir in: ${result}`);
+});
+
+test('renderCell git returns null when gitStatus is null', () => {
+  const ctx = baseContext();
+  ctx.gitStatus = null;
+  const result = renderCell('git', ctx);
+  assert.equal(result, null);
+});
+
+test('renderCell git returns branch string', () => {
+  const ctx = baseContext();
+  ctx.gitStatus = { branch: 'main', isDirty: false, ahead: 0, behind: 0 };
+  ctx.config.gitStatus.enabled = true;
+  const result = renderCell('git', ctx);
+  assert.ok(result !== null);
+  assert.ok(stripAnsi(result).includes('main'), `Expected branch in: ${result}`);
+});
+
+test('renderCell worktree returns null when worktreeInfo is null', () => {
+  const ctx = baseContext();
+  ctx.worktreeInfo = null;
+  const result = renderCell('worktree', ctx);
+  assert.equal(result, null);
+});
+
+test('renderCell worktree returns worktree cell string', () => {
+  const ctx = baseContext();
+  ctx.gitStatus = { branch: 'main', isDirty: false, ahead: 0, behind: 0 };
+  ctx.worktreeInfo = { repoName: 'my-project', worktreeName: 'base' };
+  ctx.config.gitStatus.enabled = true;
+  ctx.config.gitStatus.showWorktree = true;
+  const result = renderCell('worktree', ctx);
+  assert.ok(result !== null);
+  assert.ok(stripAnsi(result).includes('my-project:(base)'), `Expected worktree in: ${result}`);
+});

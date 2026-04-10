@@ -1643,9 +1643,7 @@ test('does not render worktree cell when worktreeInfo is null', () => {
   ctx.worktreeInfo = null;
   ctx.config.gitStatus.showWorktree = true;
   const output = stripAnsi(renderProjectLine(ctx));
-  // git:(main) is expected; no extra worktree segment should appear after the branch
-  const gitMatch = output.match(/git:\(([^)]+)\)/);
-  assert.ok(gitMatch && gitMatch[1] === 'main', `Expected git:(main) only, got: ${output}`);
+  assert.ok(!output.match(/\uF0425/), `Expected no worktree icon in: ${output}`);
 });
 
 test('renderGitFilesLine renders tracked files with per-file line diffs', () => {

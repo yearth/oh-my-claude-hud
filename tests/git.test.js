@@ -294,7 +294,7 @@ test('getWorktreeInfo returns base for main worktree', async () => {
 
 test('getWorktreeInfo returns directory name for sub-worktree', async () => {
   const mainDir = await mkdtemp(path.join(tmpdir(), 'claude-hud-main-'));
-  const wtDir = path.join(tmpdir(), 'claude-hud-wt-feature');
+  const wtDir = await mkdtemp(path.join(tmpdir(), 'claude-hud-wt-feature-'));
   try {
     execFileSync('git', ['init'], { cwd: mainDir, stdio: 'ignore' });
     execFileSync('git', ['config', 'user.email', 'test@test.com'], { cwd: mainDir, stdio: 'ignore' });

@@ -249,7 +249,7 @@ export async function getWorktreeInfo(cwd?: string): Promise<WorktreeInfo | null
 
     if (!currentEntry) return null;
 
-    const isMain = currentEntry.path === mainEntry.path;
+    const isMain = currentEntry === mainEntry;
     const worktreeName = isMain ? 'base' : path.basename(currentEntry.path);
 
     return { repoName, worktreeName };

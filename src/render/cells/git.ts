@@ -1,11 +1,24 @@
 import type { RenderContext } from '../../types.js';
-import { git as gitColor, gitBranch as gitBranchColor, green, red } from '../colors.js';
+import { git as gitColor, gitBranch as gitBranchColor, green, red, warning as warningColor, critical as criticalColor } from '../colors.js';
 import { registerCell } from '../cell-registry.js';
 
 function hyperlink(uri: string, text: string): string {
   const esc = '\x1b';
   const st = '\\';
   return `${esc}]8;;${uri}${esc}${st}${text}${esc}]8;;${esc}${st}`;
+}
+
+function formatAheadCount(
+  ahead: number,
+  gitConfig: RenderContext['config']['gitStatus'] | undefined,
+  colors: RenderContext['config']['colors'] | undefined,
+): string {
+  const value = `↑${ahead}`;
+  const criticalThreshold = gitConfig?.pushCriticalThreshold ?? 0;
+  const warningThreshold = gitConfig?.pushWarningThreshold ?? 0;
+  if (criticalThreshold > 0 && ahead >= criticalThreshold) return criticalColor(value, colors);
+  if (warningThreshold > 0 && ahead >= warningThreshold) return warningColor(value, colors);
+  return gitBranchColor(value, colors);
 }
 
 registerCell({
@@ -22,7 +35,7 @@ registerCell({
     const inner: string[] = [linkedBranch];
 
     if (gitConfig?.showAheadBehind) {
-      if (ctx.gitStatus.ahead > 0) inner.push(gitBranchColor(`↑${ctx.gitStatus.ahead}`, colors));
+      if (ctx.gitStatus.ahead > 0) inner.push(formatAheadCount(ctx.gitStatus.ahead, gitConfig, colors));
       if (ctx.gitStatus.behind > 0) inner.push(gitBranchColor(`↓${ctx.gitStatus.behind}`, colors));
     }
 

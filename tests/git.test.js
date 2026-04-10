@@ -4,7 +4,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { getGitBranch, getGitStatus } from '../dist/git.js';
+import { getGitBranch, getGitStatus, getWorktreeInfo } from '../dist/git.js';
 
 test('getGitBranch returns null when cwd is undefined', async () => {
   const result = await getGitBranch(undefined);
@@ -257,5 +257,57 @@ test('getGitStatus builds branchUrl from SSH origin remotes', async () => {
     assert.equal(result?.branchUrl, 'https://github.com/example/claude-hud/tree/feature/test-branch');
   } finally {
     await rm(dir, { recursive: true, force: true });
+  }
+});
+// getWorktreeInfo tests
+test('getWorktreeInfo returns null when cwd is undefined', async () => {
+  const result = await getWorktreeInfo(undefined);
+  assert.equal(result, null);
+});
+
+test('getWorktreeInfo returns null for non-git directory', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'claude-hud-nogit-'));
+  try {
+    const result = await getWorktreeInfo(dir);
+    assert.equal(result, null);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('getWorktreeInfo returns base for main worktree', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'claude-hud-wt-'));
+  try {
+    execFileSync('git', ['init'], { cwd: dir, stdio: 'ignore' });
+    execFileSync('git', ['config', 'user.email', 'test@test.com'], { cwd: dir, stdio: 'ignore' });
+    execFileSync('git', ['config', 'user.name', 'Test'], { cwd: dir, stdio: 'ignore' });
+    execFileSync('git', ['commit', '--allow-empty', '-m', 'init'], { cwd: dir, stdio: 'ignore' });
+
+    const result = await getWorktreeInfo(dir);
+    assert.ok(result !== null);
+    assert.equal(result.repoName, path.basename(dir));
+    assert.equal(result.worktreeName, 'base');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('getWorktreeInfo returns directory name for sub-worktree', async () => {
+  const mainDir = await mkdtemp(path.join(tmpdir(), 'claude-hud-main-'));
+  const wtDir = path.join(tmpdir(), 'claude-hud-wt-feature');
+  try {
+    execFileSync('git', ['init'], { cwd: mainDir, stdio: 'ignore' });
+    execFileSync('git', ['config', 'user.email', 'test@test.com'], { cwd: mainDir, stdio: 'ignore' });
+    execFileSync('git', ['config', 'user.name', 'Test'], { cwd: mainDir, stdio: 'ignore' });
+    execFileSync('git', ['commit', '--allow-empty', '-m', 'init'], { cwd: mainDir, stdio: 'ignore' });
+    execFileSync('git', ['worktree', 'add', wtDir, '-b', 'feature-x'], { cwd: mainDir, stdio: 'ignore' });
+
+    const result = await getWorktreeInfo(wtDir);
+    assert.ok(result !== null);
+    assert.equal(result.repoName, path.basename(mainDir));
+    assert.equal(result.worktreeName, path.basename(wtDir));
+  } finally {
+    await rm(mainDir, { recursive: true, force: true });
+    await rm(wtDir, { recursive: true, force: true });
   }
 });

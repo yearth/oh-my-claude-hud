@@ -2,28 +2,18 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import { getHudPluginDir } from './claude-config-dir.js';
-export const DEFAULT_ELEMENT_ORDER = [
-    'project',
-    'context',
-    'usage',
-    'memory',
-    'environment',
-    'tools',
-    'agents',
-    'todos',
-];
-const KNOWN_ELEMENTS = new Set(DEFAULT_ELEMENT_ORDER);
+import { DEFAULT_LAYOUT } from './render/layout.js';
 export const DEFAULT_CONFIG = {
     language: 'en',
-    lineLayout: 'expanded',
     showSeparators: false,
     pathLevels: 1,
-    elementOrder: [...DEFAULT_ELEMENT_ORDER],
+    layout: [...DEFAULT_LAYOUT],
     gitStatus: {
         enabled: true,
         showDirty: true,
         showAheadBehind: false,
         showFileStats: false,
+        showWorktree: true,
         pushWarningThreshold: 0,
         pushCriticalThreshold: 0,
     },
@@ -76,9 +66,6 @@ export function getConfigPath() {
 function validatePathLevels(value) {
     return value === 1 || value === 2 || value === 3;
 }
-function validateLineLayout(value) {
-    return value === 'compact' || value === 'expanded';
-}
 function validateAutocompactBuffer(value) {
     return value === 'enabled' || value === 'disabled';
 }
@@ -111,53 +98,7 @@ function validateColorValue(value) {
         return true;
     return false;
 }
-function validateElementOrder(value) {
-    if (!Array.isArray(value) || value.length === 0) {
-        return [...DEFAULT_ELEMENT_ORDER];
-    }
-    const seen = new Set();
-    const elementOrder = [];
-    for (const item of value) {
-        if (typeof item !== 'string' || !KNOWN_ELEMENTS.has(item)) {
-            continue;
-        }
-        const element = item;
-        if (seen.has(element)) {
-            continue;
-        }
-        seen.add(element);
-        elementOrder.push(element);
-    }
-    return elementOrder.length > 0 ? elementOrder : [...DEFAULT_ELEMENT_ORDER];
-}
-function migrateConfig(userConfig) {
-    const migrated = { ...userConfig };
-    if ('layout' in userConfig && !('lineLayout' in userConfig)) {
-        if (typeof userConfig.layout === 'string') {
-            // Legacy string migration (v0.0.x → v0.1.x)
-            if (userConfig.layout === 'separators') {
-                migrated.lineLayout = 'compact';
-                migrated.showSeparators = true;
-            }
-            else {
-                migrated.lineLayout = 'compact';
-                migrated.showSeparators = false;
-            }
-        }
-        else if (typeof userConfig.layout === 'object' && userConfig.layout !== null) {
-            // Object layout written by third-party tools — extract nested fields
-            const obj = userConfig.layout;
-            if (typeof obj.lineLayout === 'string')
-                migrated.lineLayout = obj.lineLayout;
-            if (typeof obj.showSeparators === 'boolean')
-                migrated.showSeparators = obj.showSeparators;
-            if (typeof obj.pathLevels === 'number')
-                migrated.pathLevels = obj.pathLevels;
-        }
-        delete migrated.layout;
-    }
-    return migrated;
-}
+const VALID_ROW_IDS = new Set(['session', 'location', 'memory', 'environment', 'activity', 'tokens']);
 function validateThreshold(value, max = 100) {
     if (typeof value !== 'number')
         return 0;
@@ -170,146 +111,148 @@ function validateCountThreshold(value) {
     return Math.max(0, Math.floor(value));
 }
 export function mergeConfig(userConfig) {
-    const migrated = migrateConfig(userConfig);
-    const language = validateLanguage(migrated.language)
-        ? migrated.language
+    const language = validateLanguage(userConfig.language)
+        ? userConfig.language
         : DEFAULT_CONFIG.language;
-    const lineLayout = validateLineLayout(migrated.lineLayout)
-        ? migrated.lineLayout
-        : DEFAULT_CONFIG.lineLayout;
-    const showSeparators = typeof migrated.showSeparators === 'boolean'
-        ? migrated.showSeparators
+    const showSeparators = typeof userConfig.showSeparators === 'boolean'
+        ? userConfig.showSeparators
         : DEFAULT_CONFIG.showSeparators;
-    const pathLevels = validatePathLevels(migrated.pathLevels)
-        ? migrated.pathLevels
+    const pathLevels = validatePathLevels(userConfig.pathLevels)
+        ? userConfig.pathLevels
         : DEFAULT_CONFIG.pathLevels;
-    const elementOrder = validateElementOrder(migrated.elementOrder);
+    const rawLayout = Array.isArray(userConfig.layout)
+        ? userConfig.layout.filter((id) => VALID_ROW_IDS.has(id))
+        : [...DEFAULT_LAYOUT];
+    const layout = rawLayout.length > 0 ? rawLayout : [...DEFAULT_LAYOUT];
     const gitStatus = {
-        enabled: typeof migrated.gitStatus?.enabled === 'boolean'
-            ? migrated.gitStatus.enabled
+        enabled: typeof userConfig.gitStatus?.enabled === 'boolean'
+            ? userConfig.gitStatus.enabled
             : DEFAULT_CONFIG.gitStatus.enabled,
-        showDirty: typeof migrated.gitStatus?.showDirty === 'boolean'
-            ? migrated.gitStatus.showDirty
+        showDirty: typeof userConfig.gitStatus?.showDirty === 'boolean'
+            ? userConfig.gitStatus.showDirty
             : DEFAULT_CONFIG.gitStatus.showDirty,
-        showAheadBehind: typeof migrated.gitStatus?.showAheadBehind === 'boolean'
-            ? migrated.gitStatus.showAheadBehind
+        showAheadBehind: typeof userConfig.gitStatus?.showAheadBehind === 'boolean'
+            ? userConfig.gitStatus.showAheadBehind
             : DEFAULT_CONFIG.gitStatus.showAheadBehind,
-        showFileStats: typeof migrated.gitStatus?.showFileStats === 'boolean'
-            ? migrated.gitStatus.showFileStats
+        showFileStats: typeof userConfig.gitStatus?.showFileStats === 'boolean'
+            ? userConfig.gitStatus.showFileStats
             : DEFAULT_CONFIG.gitStatus.showFileStats,
-        pushWarningThreshold: validateCountThreshold(migrated.gitStatus?.pushWarningThreshold),
-        pushCriticalThreshold: validateCountThreshold(migrated.gitStatus?.pushCriticalThreshold),
+        pushWarningThreshold: validateCountThreshold(userConfig.gitStatus?.pushWarningThreshold),
+        pushCriticalThreshold: validateCountThreshold(userConfig.gitStatus?.pushCriticalThreshold),
+        showWorktree: typeof userConfig.gitStatus?.showWorktree === 'boolean'
+            ? userConfig.gitStatus.showWorktree
+            : DEFAULT_CONFIG.gitStatus.showWorktree,
     };
     const display = {
-        showModel: typeof migrated.display?.showModel === 'boolean'
-            ? migrated.display.showModel
+        showModel: typeof userConfig.display?.showModel === 'boolean'
+            ? userConfig.display.showModel
             : DEFAULT_CONFIG.display.showModel,
-        showProject: typeof migrated.display?.showProject === 'boolean'
-            ? migrated.display.showProject
+        showProject: typeof userConfig.display?.showProject === 'boolean'
+            ? userConfig.display.showProject
             : DEFAULT_CONFIG.display.showProject,
-        showContextBar: typeof migrated.display?.showContextBar === 'boolean'
-            ? migrated.display.showContextBar
+        showContextBar: typeof userConfig.display?.showContextBar === 'boolean'
+            ? userConfig.display.showContextBar
             : DEFAULT_CONFIG.display.showContextBar,
-        contextValue: validateContextValue(migrated.display?.contextValue)
-            ? migrated.display.contextValue
+        contextValue: validateContextValue(userConfig.display?.contextValue)
+            ? userConfig.display.contextValue
             : DEFAULT_CONFIG.display.contextValue,
-        showConfigCounts: typeof migrated.display?.showConfigCounts === 'boolean'
-            ? migrated.display.showConfigCounts
+        showConfigCounts: typeof userConfig.display?.showConfigCounts === 'boolean'
+            ? userConfig.display.showConfigCounts
             : DEFAULT_CONFIG.display.showConfigCounts,
-        showCost: typeof migrated.display?.showCost === 'boolean'
-            ? migrated.display.showCost
+        showCost: typeof userConfig.display?.showCost === 'boolean'
+            ? userConfig.display.showCost
             : DEFAULT_CONFIG.display.showCost,
-        showDuration: typeof migrated.display?.showDuration === 'boolean'
-            ? migrated.display.showDuration
+        showDuration: typeof userConfig.display?.showDuration === 'boolean'
+            ? userConfig.display.showDuration
             : DEFAULT_CONFIG.display.showDuration,
-        showSpeed: typeof migrated.display?.showSpeed === 'boolean'
-            ? migrated.display.showSpeed
+        showSpeed: typeof userConfig.display?.showSpeed === 'boolean'
+            ? userConfig.display.showSpeed
             : DEFAULT_CONFIG.display.showSpeed,
-        showTokenBreakdown: typeof migrated.display?.showTokenBreakdown === 'boolean'
-            ? migrated.display.showTokenBreakdown
+        showTokenBreakdown: typeof userConfig.display?.showTokenBreakdown === 'boolean'
+            ? userConfig.display.showTokenBreakdown
             : DEFAULT_CONFIG.display.showTokenBreakdown,
-        showUsage: typeof migrated.display?.showUsage === 'boolean'
-            ? migrated.display.showUsage
+        showUsage: typeof userConfig.display?.showUsage === 'boolean'
+            ? userConfig.display.showUsage
             : DEFAULT_CONFIG.display.showUsage,
-        usageBarEnabled: typeof migrated.display?.usageBarEnabled === 'boolean'
-            ? migrated.display.usageBarEnabled
+        usageBarEnabled: typeof userConfig.display?.usageBarEnabled === 'boolean'
+            ? userConfig.display.usageBarEnabled
             : DEFAULT_CONFIG.display.usageBarEnabled,
-        showTools: typeof migrated.display?.showTools === 'boolean'
-            ? migrated.display.showTools
+        showTools: typeof userConfig.display?.showTools === 'boolean'
+            ? userConfig.display.showTools
             : DEFAULT_CONFIG.display.showTools,
-        showAgents: typeof migrated.display?.showAgents === 'boolean'
-            ? migrated.display.showAgents
+        showAgents: typeof userConfig.display?.showAgents === 'boolean'
+            ? userConfig.display.showAgents
             : DEFAULT_CONFIG.display.showAgents,
-        showTodos: typeof migrated.display?.showTodos === 'boolean'
-            ? migrated.display.showTodos
+        showTodos: typeof userConfig.display?.showTodos === 'boolean'
+            ? userConfig.display.showTodos
             : DEFAULT_CONFIG.display.showTodos,
-        showSessionName: typeof migrated.display?.showSessionName === 'boolean'
-            ? migrated.display.showSessionName
+        showSessionName: typeof userConfig.display?.showSessionName === 'boolean'
+            ? userConfig.display.showSessionName
             : DEFAULT_CONFIG.display.showSessionName,
-        showClaudeCodeVersion: typeof migrated.display?.showClaudeCodeVersion === 'boolean'
-            ? migrated.display.showClaudeCodeVersion
+        showClaudeCodeVersion: typeof userConfig.display?.showClaudeCodeVersion === 'boolean'
+            ? userConfig.display.showClaudeCodeVersion
             : DEFAULT_CONFIG.display.showClaudeCodeVersion,
-        showMemoryUsage: typeof migrated.display?.showMemoryUsage === 'boolean'
-            ? migrated.display.showMemoryUsage
+        showMemoryUsage: typeof userConfig.display?.showMemoryUsage === 'boolean'
+            ? userConfig.display.showMemoryUsage
             : DEFAULT_CONFIG.display.showMemoryUsage,
-        showSessionTokens: typeof migrated.display?.showSessionTokens === 'boolean'
-            ? migrated.display.showSessionTokens
+        showSessionTokens: typeof userConfig.display?.showSessionTokens === 'boolean'
+            ? userConfig.display.showSessionTokens
             : DEFAULT_CONFIG.display.showSessionTokens,
-        showOutputStyle: typeof migrated.display?.showOutputStyle === 'boolean'
-            ? migrated.display.showOutputStyle
+        showOutputStyle: typeof userConfig.display?.showOutputStyle === 'boolean'
+            ? userConfig.display.showOutputStyle
             : DEFAULT_CONFIG.display.showOutputStyle,
-        autocompactBuffer: validateAutocompactBuffer(migrated.display?.autocompactBuffer)
-            ? migrated.display.autocompactBuffer
+        autocompactBuffer: validateAutocompactBuffer(userConfig.display?.autocompactBuffer)
+            ? userConfig.display.autocompactBuffer
             : DEFAULT_CONFIG.display.autocompactBuffer,
-        usageThreshold: validateThreshold(migrated.display?.usageThreshold, 100),
-        sevenDayThreshold: validateThreshold(migrated.display?.sevenDayThreshold, 100),
-        environmentThreshold: validateThreshold(migrated.display?.environmentThreshold, 100),
-        modelFormat: validateModelFormat(migrated.display?.modelFormat)
-            ? migrated.display.modelFormat
+        usageThreshold: validateThreshold(userConfig.display?.usageThreshold, 100),
+        sevenDayThreshold: validateThreshold(userConfig.display?.sevenDayThreshold, 100),
+        environmentThreshold: validateThreshold(userConfig.display?.environmentThreshold, 100),
+        modelFormat: validateModelFormat(userConfig.display?.modelFormat)
+            ? userConfig.display.modelFormat
             : DEFAULT_CONFIG.display.modelFormat,
-        modelOverride: typeof migrated.display?.modelOverride === 'string'
-            ? migrated.display.modelOverride.slice(0, 80)
+        modelOverride: typeof userConfig.display?.modelOverride === 'string'
+            ? userConfig.display.modelOverride.slice(0, 80)
             : DEFAULT_CONFIG.display.modelOverride,
-        customLine: typeof migrated.display?.customLine === 'string'
-            ? migrated.display.customLine.slice(0, 80)
+        customLine: typeof userConfig.display?.customLine === 'string'
+            ? userConfig.display.customLine.slice(0, 80)
             : DEFAULT_CONFIG.display.customLine,
     };
     const colors = {
-        context: validateColorValue(migrated.colors?.context)
-            ? migrated.colors.context
+        context: validateColorValue(userConfig.colors?.context)
+            ? userConfig.colors.context
             : DEFAULT_CONFIG.colors.context,
-        usage: validateColorValue(migrated.colors?.usage)
-            ? migrated.colors.usage
+        usage: validateColorValue(userConfig.colors?.usage)
+            ? userConfig.colors.usage
             : DEFAULT_CONFIG.colors.usage,
-        warning: validateColorValue(migrated.colors?.warning)
-            ? migrated.colors.warning
+        warning: validateColorValue(userConfig.colors?.warning)
+            ? userConfig.colors.warning
             : DEFAULT_CONFIG.colors.warning,
-        usageWarning: validateColorValue(migrated.colors?.usageWarning)
-            ? migrated.colors.usageWarning
+        usageWarning: validateColorValue(userConfig.colors?.usageWarning)
+            ? userConfig.colors.usageWarning
             : DEFAULT_CONFIG.colors.usageWarning,
-        critical: validateColorValue(migrated.colors?.critical)
-            ? migrated.colors.critical
+        critical: validateColorValue(userConfig.colors?.critical)
+            ? userConfig.colors.critical
             : DEFAULT_CONFIG.colors.critical,
-        model: validateColorValue(migrated.colors?.model)
-            ? migrated.colors.model
+        model: validateColorValue(userConfig.colors?.model)
+            ? userConfig.colors.model
             : DEFAULT_CONFIG.colors.model,
-        project: validateColorValue(migrated.colors?.project)
-            ? migrated.colors.project
+        project: validateColorValue(userConfig.colors?.project)
+            ? userConfig.colors.project
             : DEFAULT_CONFIG.colors.project,
-        git: validateColorValue(migrated.colors?.git)
-            ? migrated.colors.git
+        git: validateColorValue(userConfig.colors?.git)
+            ? userConfig.colors.git
             : DEFAULT_CONFIG.colors.git,
-        gitBranch: validateColorValue(migrated.colors?.gitBranch)
-            ? migrated.colors.gitBranch
+        gitBranch: validateColorValue(userConfig.colors?.gitBranch)
+            ? userConfig.colors.gitBranch
             : DEFAULT_CONFIG.colors.gitBranch,
-        label: validateColorValue(migrated.colors?.label)
-            ? migrated.colors.label
+        label: validateColorValue(userConfig.colors?.label)
+            ? userConfig.colors.label
             : DEFAULT_CONFIG.colors.label,
-        custom: validateColorValue(migrated.colors?.custom)
-            ? migrated.colors.custom
+        custom: validateColorValue(userConfig.colors?.custom)
+            ? userConfig.colors.custom
             : DEFAULT_CONFIG.colors.custom,
     };
-    return { language, lineLayout, showSeparators, pathLevels, elementOrder, gitStatus, display, colors };
+    return { language, showSeparators, pathLevels, layout, gitStatus, display, colors };
 }
 export async function loadConfig() {
     const configPath = getConfigPath();

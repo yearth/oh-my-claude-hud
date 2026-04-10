@@ -37,6 +37,13 @@ export function renderProjectLine(ctx) {
         const coloredBranch = gitBranchColor(branchText, colors);
         const linkedBranch = ctx.gitStatus.branchUrl ? hyperlink(ctx.gitStatus.branchUrl, coloredBranch) : coloredBranch;
         const gitInner = [linkedBranch];
+        const showWorktree = gitConfig?.showWorktree ?? true;
+        if (showWorktree && ctx.worktreeInfo) {
+            const { repoName, worktreeName } = ctx.worktreeInfo;
+            // \uF0425 = nf-md-source_branch (Nerd Font Material Design Icons)
+            const worktreeCell = gitBranchColor(`\uF0425 ${repoName}:(${worktreeName})`, colors);
+            gitInner.push(worktreeCell);
+        }
         if (gitConfig?.showAheadBehind) {
             if (ctx.gitStatus.ahead > 0) {
                 gitInner.push(formatAheadCount(ctx.gitStatus.ahead, gitConfig, colors));

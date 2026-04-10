@@ -1,5 +1,7 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { realpathSync } from 'node:fs';
+import path from 'node:path';
 const execFileAsync = promisify(execFile);
 export async function getGitBranch(cwd) {
     if (!cwd)
@@ -149,5 +151,56 @@ function applyLineDiffsToFiles(files, perFileDiff) {
             file.lineDiff = diff;
         }
     }
+}
+export async function getWorktreeInfo(cwd) {
+    if (!cwd)
+        return null;
+    try {
+        const { stdout } = await execFileAsync('git', ['worktree', 'list', '--porcelain'], { cwd, timeout: 2000, encoding: 'utf8' });
+        const entries = parseWorktreeList(stdout);
+        if (entries.length === 0)
+            return null;
+        const mainEntry = entries[0];
+        const repoName = path.basename(mainEntry.path);
+        let resolvedCwd;
+        try {
+            resolvedCwd = realpathSync(cwd);
+        }
+        catch {
+            resolvedCwd = cwd;
+        }
+        const currentEntry = entries.find(e => {
+            try {
+                return realpathSync(e.path) === resolvedCwd;
+            }
+            catch {
+                return e.path === resolvedCwd;
+            }
+        });
+        if (!currentEntry)
+            return null;
+        const isMain = currentEntry === mainEntry;
+        const worktreeName = isMain ? 'base' : path.basename(currentEntry.path);
+        return { repoName, worktreeName };
+    }
+    catch {
+        return null;
+    }
+}
+function parseWorktreeList(output) {
+    const entries = [];
+    let currentPath = null;
+    for (const line of output.split('\n')) {
+        if (line.startsWith('worktree ')) {
+            if (currentPath !== null) {
+                entries.push({ path: currentPath });
+            }
+            currentPath = line.slice('worktree '.length).trim();
+        }
+    }
+    if (currentPath !== null) {
+        entries.push({ path: currentPath });
+    }
+    return entries;
 }
 //# sourceMappingURL=git.js.map

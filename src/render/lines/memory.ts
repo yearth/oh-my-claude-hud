@@ -8,10 +8,6 @@ export function renderMemoryLine(ctx: RenderContext): string | null {
   const display = ctx.config?.display;
   const colors = ctx.config?.colors;
 
-  if (ctx.config?.lineLayout !== "expanded") {
-    return null;
-  }
-
   if (display?.showMemoryUsage !== true) {
     return null;
   }

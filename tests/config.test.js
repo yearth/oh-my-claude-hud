@@ -5,8 +5,8 @@ import {
   getConfigPath,
   mergeConfig,
   DEFAULT_CONFIG,
-  DEFAULT_ELEMENT_ORDER,
 } from '../dist/config.js';
+import { DEFAULT_LAYOUT } from '../dist/render/layout.js';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
@@ -26,15 +26,11 @@ test('loadConfig returns valid config structure', async () => {
   // pathLevels must be 1, 2, or 3
   assert.ok([1, 2, 3].includes(config.pathLevels), 'pathLevels should be 1, 2, or 3');
 
-  // lineLayout must be valid
-  const validLineLayouts = ['compact', 'expanded'];
-  assert.ok(validLineLayouts.includes(config.lineLayout), 'lineLayout should be valid');
-
   // showSeparators must be boolean
   assert.equal(typeof config.showSeparators, 'boolean', 'showSeparators should be boolean');
-  assert.ok(Array.isArray(config.elementOrder), 'elementOrder should be an array');
-  assert.ok(config.elementOrder.length > 0, 'elementOrder should not be empty');
-  assert.deepEqual(config.elementOrder, DEFAULT_ELEMENT_ORDER, 'elementOrder should default to the full expanded layout');
+  assert.ok(Array.isArray(config.layout), 'layout should be an array');
+  assert.ok(config.layout.length > 0, 'layout should not be empty');
+  assert.deepEqual(config.layout, DEFAULT_LAYOUT, 'layout should default to DEFAULT_LAYOUT');
 
   // gitStatus object with expected properties
   assert.equal(typeof config.gitStatus, 'object');
@@ -220,7 +216,7 @@ test('loadConfig reads user config from CLAUDE_CONFIG_DIR', async () => {
     await writeFile(
       path.join(pluginDir, 'config.json'),
       JSON.stringify({
-        lineLayout: 'compact',
+        layout: ['session', 'location'],
         pathLevels: 2,
         display: { showSpeed: true },
       }),
@@ -228,7 +224,7 @@ test('loadConfig reads user config from CLAUDE_CONFIG_DIR', async () => {
     );
 
     const config = await loadConfig();
-    assert.equal(config.lineLayout, 'compact');
+    assert.deepEqual(config.layout, ['session', 'location']);
     assert.equal(config.pathLevels, 2);
     assert.equal(config.display.showSpeed, true);
   } finally {
@@ -237,48 +233,31 @@ test('loadConfig reads user config from CLAUDE_CONFIG_DIR', async () => {
   }
 });
 
-// --- migrateConfig tests (via mergeConfig) ---
+// --- layout config tests ---
 
-test('migrate legacy layout: "default" -> compact, no separators', () => {
-  const config = mergeConfig({ layout: 'default' });
-  assert.equal(config.lineLayout, 'compact');
-  assert.equal(config.showSeparators, false);
-});
-
-test('migrate legacy layout: "separators" -> compact, with separators', () => {
-  const config = mergeConfig({ layout: 'separators' });
-  assert.equal(config.lineLayout, 'compact');
-  assert.equal(config.showSeparators, true);
-});
-
-test('migrate object layout: extracts nested fields to top level', () => {
-  const config = mergeConfig({
-    layout: { lineLayout: 'expanded', showSeparators: true, pathLevels: 2 },
-  });
-  assert.equal(config.lineLayout, 'expanded');
-  assert.equal(config.showSeparators, true);
-  assert.equal(config.pathLevels, 2);
-});
-
-test('migrate object layout: empty object does not crash', () => {
-  const config = mergeConfig({ layout: {} });
-  // Should fall back to defaults since no fields were extracted
-  assert.equal(config.lineLayout, DEFAULT_CONFIG.lineLayout);
-  assert.equal(config.showSeparators, DEFAULT_CONFIG.showSeparators);
-  assert.equal(config.pathLevels, DEFAULT_CONFIG.pathLevels);
-});
-
-test('no layout key -> no migration, uses defaults', () => {
+test('default config has layout field matching DEFAULT_LAYOUT', () => {
   const config = mergeConfig({});
-  assert.equal(config.lineLayout, DEFAULT_CONFIG.lineLayout);
-  assert.equal(config.showSeparators, DEFAULT_CONFIG.showSeparators);
+  assert.deepEqual(config.layout, DEFAULT_LAYOUT);
 });
 
-test('both layout and lineLayout present -> layout ignored', () => {
-  const config = mergeConfig({ layout: 'separators', lineLayout: 'expanded' });
-  // When lineLayout is already present, migration should not run
-  assert.equal(config.lineLayout, 'expanded');
-  assert.equal(config.showSeparators, DEFAULT_CONFIG.showSeparators);
+test('mergeConfig accepts custom layout', () => {
+  const config = mergeConfig({ layout: ['session', 'location'] });
+  assert.deepEqual(config.layout, ['session', 'location']);
+});
+
+test('mergeConfig filters invalid layout entries', () => {
+  const config = mergeConfig({ layout: ['session', 'invalid-row-id', 'location'] });
+  assert.deepEqual(config.layout, ['session', 'location']);
+});
+
+test('mergeConfig falls back to DEFAULT_LAYOUT when layout is empty array', () => {
+  const config = mergeConfig({ layout: [] });
+  assert.deepEqual(config.layout, DEFAULT_LAYOUT);
+});
+
+test('mergeConfig falls back to DEFAULT_LAYOUT when layout is not an array', () => {
+  const config = mergeConfig({ layout: 'invalid' });
+  assert.deepEqual(config.layout, DEFAULT_LAYOUT);
 });
 
 test('mergeConfig accepts contextValue=remaining', () => {
@@ -308,40 +287,6 @@ test('mergeConfig falls back to default for invalid contextValue', () => {
   assert.equal(config.display.contextValue, DEFAULT_CONFIG.display.contextValue);
 });
 
-test('mergeConfig defaults elementOrder to the full expanded layout', () => {
-  const config = mergeConfig({});
-  assert.deepEqual(config.elementOrder, DEFAULT_ELEMENT_ORDER);
-});
-
-test('mergeConfig preserves valid custom elementOrder including activity elements', () => {
-  const config = mergeConfig({
-    elementOrder: ['tools', 'project', 'usage', 'memory', 'context', 'agents', 'todos', 'environment'],
-  });
-  assert.deepEqual(
-    config.elementOrder,
-    ['tools', 'project', 'usage', 'memory', 'context', 'agents', 'todos', 'environment']
-  );
-});
-
-test('mergeConfig filters unknown entries and de-duplicates elementOrder', () => {
-  const config = mergeConfig({
-    elementOrder: ['project', 'agents', 'project', 'banana', 'usage', 'memory', 'agents', 'context'],
-  });
-  assert.deepEqual(config.elementOrder, ['project', 'agents', 'usage', 'memory', 'context']);
-});
-
-test('mergeConfig treats elementOrder as an explicit expanded-mode filter', () => {
-  const config = mergeConfig({
-    elementOrder: ['usage', 'project'],
-  });
-  assert.deepEqual(config.elementOrder, ['usage', 'project']);
-});
-
-test('mergeConfig falls back to default when elementOrder is empty or invalid', () => {
-  assert.deepEqual(mergeConfig({ elementOrder: [] }).elementOrder, DEFAULT_ELEMENT_ORDER);
-  assert.deepEqual(mergeConfig({ elementOrder: ['unknown'] }).elementOrder, DEFAULT_ELEMENT_ORDER);
-  assert.deepEqual(mergeConfig({ elementOrder: 'project' }).elementOrder, DEFAULT_ELEMENT_ORDER);
-});
 
 test('mergeConfig defaults colors to expected semantic palette', () => {
   const config = mergeConfig({});

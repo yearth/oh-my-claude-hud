@@ -421,18 +421,6 @@ test('renderMemoryLine shows approximate system RAM usage in expanded layout whe
   assert.ok(line.includes('(63%)'));
 });
 
-test('renderMemoryLine stays hidden in compact layout even when enabled', () => {
-  const ctx = baseContext();
-  ctx.config.display.showMemoryUsage = true;
-  ctx.memoryUsage = {
-    totalBytes: 16 * 1024 ** 3,
-    usedBytes: 10 * 1024 ** 3,
-    freeBytes: 6 * 1024 ** 3,
-    usedPercent: 63,
-  };
-
-  assert.equal(renderMemoryLine(ctx), null);
-});
 
 test('renderProjectLine includes extraLabel when present', () => {
   const ctx = baseContext();
@@ -679,23 +667,6 @@ test('renderProjectLine omits speed when showSpeed is false', () => {
   assert.ok(!line?.includes('tok/s'), 'should not include speed when disabled');
 });
 
-test('render expanded layout includes speed and duration on the project line', async () => {
-  await withDeterministicSpeedCache(async () => {
-    const ctx = baseContext();
-    ctx.config.lineLayout = 'expanded';
-    ctx.stdin.cwd = '/tmp/my-project';
-    ctx.stdin.context_window.current_usage.output_tokens = 2000;
-    ctx.config.display.showSpeed = true;
-    ctx.sessionDuration = '12m 34s';
-
-    const lines = withTerminal(120, () => captureRenderLines(ctx));
-    const projectLine = lines.find(line => line.includes('my-project'));
-
-    assert.ok(projectLine, 'expected an expanded project line');
-    assert.ok(projectLine.includes('out: 1000.0 tok/s'), 'should include deterministic speed');
-    assert.ok(projectLine.includes('⏱️  12m 34s'), 'should include session duration');
-  });
-});
 
 test('renderSessionLine omits project name when showProject is false', () => {
   const ctx = baseContext();
@@ -1445,25 +1416,6 @@ test('renderSessionLine avoids inflated startup percentage before native context
   assert.ok(line.includes('0%'), `expected startup percent 0%, got: ${line}`);
 });
 
-test('render adds separator line when showSeparators is true and activity exists', () => {
-  const ctx = baseContext();
-  ctx.config.showSeparators = true;
-  ctx.transcript.tools = [
-    { id: 'tool-1', name: 'Read', status: 'completed', startTime: new Date(0), endTime: new Date(0), duration: 0 },
-  ];
-
-  const logs = [];
-  const originalLog = console.log;
-  console.log = (line) => logs.push(line);
-  try {
-    render(ctx);
-  } finally {
-    console.log = originalLog;
-  }
-
-  assert.ok(logs.length > 1, 'should render multiple lines');
-  assert.ok(logs.some(l => l.includes('─')), 'should include separator line');
-});
 
 test('render omits separator when showSeparators is true but no activity', () => {
   const ctx = baseContext();
@@ -1699,160 +1651,6 @@ test('renderGitFilesLine hides on narrow terminals', () => {
   assert.equal(renderGitFilesLine(ctx, 50), null);
 });
 
-test('render expanded layout honors custom elementOrder including activity placement', () => {
-  const ctx = baseContext();
-  ctx.config.lineLayout = 'expanded';
-  ctx.stdin.cwd = '/tmp/my-project';
-  ctx.usageData = {
-    planName: 'Team',
-    fiveHour: 30,
-    sevenDay: 10,
-    fiveHourResetAt: new Date(Date.now() + 60 * 60 * 1000),
-    sevenDayResetAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-  };
-  ctx.memoryUsage = {
-    totalBytes: 16 * 1024 ** 3,
-    usedBytes: 10 * 1024 ** 3,
-    freeBytes: 6 * 1024 ** 3,
-    usedPercent: 63,
-  };
-  ctx.claudeMdCount = 1;
-  ctx.rulesCount = 2;
-  ctx.transcript.tools = [
-    { id: 'tool-1', name: 'Read', status: 'completed', startTime: new Date(0), endTime: new Date(0), duration: 0 },
-  ];
-  ctx.transcript.agents = [
-    { id: 'agent-1', type: 'planner', status: 'running', startTime: new Date(0) },
-  ];
-  ctx.transcript.todos = [
-    { content: 'todo-marker', status: 'in_progress' },
-  ];
-  ctx.config.display.showMemoryUsage = true;
-  ctx.config.elementOrder = ['tools', 'project', 'usage', 'context', 'memory', 'environment', 'agents', 'todos'];
-
-  const lines = withTerminal(120, () => captureRenderLines(ctx));
-  const toolIndex = lines.findIndex(line => line.includes('Read'));
-  const projectIndex = lines.findIndex(line => line.includes('my-project'));
-  const combinedIndex = lines.findIndex(line => line.includes('Usage') && line.includes('Context'));
-  const memoryIndex = lines.findIndex(line => line.includes('Approx RAM'));
-  const environmentIndex = lines.findIndex(line => line.includes('CLAUDE.md'));
-  const agentIndex = lines.findIndex(line => line.includes('planner'));
-  const todoIndex = lines.findIndex(line => line.includes('todo-marker'));
-
-  assert.deepEqual(
-    [toolIndex, projectIndex, combinedIndex, memoryIndex, environmentIndex, agentIndex, todoIndex].every(index => index >= 0),
-    true,
-    'expected all configured elements to render'
-  );
-  assert.ok(toolIndex < projectIndex, 'tool line should move ahead of project');
-  assert.ok(projectIndex < combinedIndex, 'combined usage/context line should follow project');
-  assert.ok(combinedIndex < memoryIndex, 'memory line should follow combined usage/context');
-  assert.ok(memoryIndex < environmentIndex, 'environment line should follow memory');
-  assert.ok(environmentIndex < agentIndex, 'agent line should follow environment');
-  assert.ok(agentIndex < todoIndex, 'todo line should follow agent line');
-});
-
-test('render expanded layout omits elements not present in elementOrder', () => {
-  const ctx = baseContext();
-  ctx.config.lineLayout = 'expanded';
-  ctx.stdin.cwd = '/tmp/my-project';
-  ctx.usageData = {
-    planName: 'Team',
-    fiveHour: 30,
-    sevenDay: 10,
-    fiveHourResetAt: new Date(Date.now() + 60 * 60 * 1000),
-    sevenDayResetAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-  };
-  ctx.memoryUsage = {
-    totalBytes: 16 * 1024 ** 3,
-    usedBytes: 10 * 1024 ** 3,
-    freeBytes: 6 * 1024 ** 3,
-    usedPercent: 63,
-  };
-  ctx.claudeMdCount = 1;
-  ctx.transcript.tools = [
-    { id: 'tool-1', name: 'Read', status: 'completed', startTime: new Date(0), endTime: new Date(0), duration: 0 },
-  ];
-  ctx.transcript.agents = [
-    { id: 'agent-1', type: 'planner', status: 'running', startTime: new Date(0) },
-  ];
-  ctx.transcript.todos = [
-    { content: 'todo-marker', status: 'in_progress' },
-  ];
-  ctx.config.elementOrder = ['project', 'tools'];
-  ctx.config.display.showMemoryUsage = true;
-
-  const output = captureRenderLines(ctx).join('\n');
-
-  assert.ok(output.includes('my-project'), 'project should render when included');
-  assert.ok(output.includes('Read'), 'tools should render when included');
-  assert.ok(!output.includes('Context'), 'context should be omitted when excluded');
-  assert.ok(!output.includes('Usage'), 'usage should be omitted when excluded');
-  assert.ok(!output.includes('Approx RAM'), 'memory should be omitted when excluded');
-  assert.ok(!output.includes('CLAUDE.md'), 'environment should be omitted when excluded');
-  assert.ok(!output.includes('planner'), 'agents should be omitted when excluded');
-  assert.ok(!output.includes('todo-marker'), 'todos should be omitted when excluded');
-});
-
-test('render expanded layout combines usage and context when adjacent in elementOrder', () => {
-  const ctx = baseContext();
-  ctx.config.lineLayout = 'expanded';
-  ctx.usageData = {
-    planName: 'Team',
-    fiveHour: 30,
-    sevenDay: 10,
-    fiveHourResetAt: new Date(Date.now() + 60 * 60 * 1000),
-    sevenDayResetAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-  };
-  ctx.config.elementOrder = ['usage', 'context'];
-
-  const lines = withTerminal(120, () => captureRenderLines(ctx));
-
-  assert.equal(lines.length, 1, 'adjacent usage and context should share one expanded line');
-  assert.ok(lines[0].includes('Usage'), 'combined line should include usage');
-  assert.ok(lines[0].includes('Context'), 'combined line should include context');
-  assert.ok(lines[0].includes('│'), 'combined line should preserve the shared separator');
-});
-
-test('render expanded layout keeps usage and context separate when not adjacent', () => {
-  const ctx = baseContext();
-  ctx.config.lineLayout = 'expanded';
-  ctx.stdin.cwd = '/tmp/my-project';
-  ctx.usageData = {
-    planName: 'Team',
-    fiveHour: 30,
-    sevenDay: 10,
-    fiveHourResetAt: new Date(Date.now() + 60 * 60 * 1000),
-    sevenDayResetAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-  };
-  ctx.config.elementOrder = ['usage', 'project', 'context'];
-
-  const lines = captureRenderLines(ctx);
-  const usageLine = lines.find(line => line.includes('Usage'));
-  const contextLine = lines.find(line => line.includes('Context'));
-  const combinedLine = lines.find(line => line.includes('Usage') && line.includes('Context'));
-
-  assert.ok(usageLine, 'usage should render on its own line');
-  assert.ok(contextLine, 'context should render on its own line');
-  assert.equal(combinedLine, undefined, 'usage and context should not combine when separated by another element');
-});
-
-test('render compact layout keeps activity lines even when elementOrder omits them', () => {
-  const ctx = baseContext();
-  ctx.stdin.cwd = '/tmp/my-project';
-  ctx.transcript.tools = [
-    { id: 'tool-1', name: 'Read', status: 'completed', startTime: new Date(0), endTime: new Date(0), duration: 0 },
-  ];
-  ctx.transcript.todos = [
-    { content: 'todo-marker', status: 'in_progress' },
-  ];
-  ctx.config.elementOrder = ['project'];
-
-  const output = captureRenderLines(ctx).join('\n');
-
-  assert.ok(output.includes('Read'), 'compact mode should keep tools visible');
-  assert.ok(output.includes('todo-marker'), 'compact mode should keep todos visible');
-});
 
 test('renderSessionTokensLine returns null when session token display is disabled', () => {
   const ctx = baseContext();

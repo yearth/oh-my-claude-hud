@@ -295,7 +295,7 @@ function wrapLineToWidth(line: string, maxWidth: number): string[] {
 }
 
 export function render(ctx: RenderContext): void {
-  const layout: Layout = DEFAULT_LAYOUT;
+  const layout: Layout = ctx.config?.layout ?? DEFAULT_LAYOUT;
   const terminalWidth = getTerminalWidth();
   const outputLines: string[] = [];
 

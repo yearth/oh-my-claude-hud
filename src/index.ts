@@ -95,7 +95,7 @@ export async function main(overrides: Partial<MainDeps> = {}): Promise<void> {
       ? await deps.getClaudeCodeVersion()
       : undefined;
     const memoryUsage =
-      config.display.showMemoryUsage && config.lineLayout === "expanded"
+      config.display.showMemoryUsage
         ? await deps.getMemoryUsage()
         : null;
 

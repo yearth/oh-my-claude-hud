@@ -15,6 +15,10 @@ export interface FileStats {
     untracked: number;
     trackedFiles: TrackedFile[];
 }
+export interface WorktreeInfo {
+    repoName: string;
+    worktreeName: string;
+}
 export interface GitStatus {
     branch: string;
     isDirty: boolean;
@@ -26,4 +30,5 @@ export interface GitStatus {
 }
 export declare function getGitBranch(cwd?: string): Promise<string | null>;
 export declare function getGitStatus(cwd?: string): Promise<GitStatus | null>;
+export declare function getWorktreeInfo(cwd?: string): Promise<WorktreeInfo | null>;
 //# sourceMappingURL=git.d.ts.map

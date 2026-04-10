@@ -2,7 +2,7 @@ import { readStdin, getUsageFromStdin } from "./stdin.js";
 import { parseTranscript } from "./transcript.js";
 import { render } from "./render/index.js";
 import { countConfigs } from "./config-reader.js";
-import { getGitStatus } from "./git.js";
+import { getGitStatus, getWorktreeInfo } from "./git.js";
 import { loadConfig } from "./config.js";
 import { parseExtraCmdArg, runExtraCmd } from "./extra-cmd.js";
 import { getClaudeCodeVersion } from "./version.js";
@@ -17,6 +17,7 @@ export async function main(overrides = {}) {
         parseTranscript,
         countConfigs,
         getGitStatus,
+        getWorktreeInfo,
         loadConfig,
         parseExtraCmdArg,
         runExtraCmd,
@@ -48,6 +49,9 @@ export async function main(overrides = {}) {
         const gitStatus = config.gitStatus.enabled
             ? await deps.getGitStatus(stdin.cwd)
             : null;
+        const worktreeInfo = config.gitStatus.enabled && config.gitStatus.showWorktree
+            ? await deps.getWorktreeInfo(stdin.cwd)
+            : null;
         // Usage comes only from Claude Code's official stdin rate_limits fields.
         let usageData = null;
         if (config.display.showUsage !== false) {
@@ -59,7 +63,7 @@ export async function main(overrides = {}) {
         const claudeCodeVersion = config.display.showClaudeCodeVersion
             ? await deps.getClaudeCodeVersion()
             : undefined;
-        const memoryUsage = config.display.showMemoryUsage && config.lineLayout === "expanded"
+        const memoryUsage = config.display.showMemoryUsage
             ? await deps.getMemoryUsage()
             : null;
         const ctx = {
@@ -71,6 +75,7 @@ export async function main(overrides = {}) {
             hooksCount,
             sessionDuration,
             gitStatus,
+            worktreeInfo,
             usageData,
             memoryUsage,
             config,

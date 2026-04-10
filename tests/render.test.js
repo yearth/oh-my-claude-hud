@@ -2011,3 +2011,29 @@ test('renderRow returns null when all cells are null', () => {
   const result = renderRow({ id: 'session', cells: ['model', 'duration'] }, ctx);
   assert.equal(result, null);
 });
+
+// ===== Render engine integration test =====
+test('render outputs session row before location row', () => {
+  const ctx = baseContext();
+  ctx.stdin.model = { display_name: 'claude-opus-4-6' };
+  ctx.config.display.showModel = true;
+  ctx.config.display.showDuration = false;
+  ctx.config.display.showCost = false;
+  ctx.stdin.cwd = '/Users/test/my-project';
+  ctx.config.display.showProject = true;
+  ctx.gitStatus = { branch: 'main', isDirty: false, ahead: 0, behind: 0 };
+  ctx.config.gitStatus.enabled = true;
+
+  const lines = [];
+  const origLog = console.log;
+  console.log = (line) => lines.push(line);
+  render(ctx);
+  console.log = origLog;
+
+  const stripped = lines.map(l => l.replace(/\x1b\[[0-9;]*m/g, '').replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g, ''));
+  const sessionIdx = stripped.findIndex(l => l.includes('claude-opus-4-6'));
+  const locationIdx = stripped.findIndex(l => l.includes('my-project'));
+  assert.ok(sessionIdx !== -1, 'session row not found');
+  assert.ok(locationIdx !== -1, 'location row not found');
+  assert.ok(sessionIdx < locationIdx, `session (${sessionIdx}) should come before location (${locationIdx})`);
+});

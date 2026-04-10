@@ -1,5 +1,6 @@
 import type { Language } from './i18n/types.js';
 import type { RowId } from './render/row.js';
+import type { CellId } from './render/cell-registry.js';
 export type AutocompactBufferMode = 'enabled' | 'disabled';
 export type ContextValueMode = 'percent' | 'tokens' | 'remaining' | 'both';
 /**
@@ -31,6 +32,7 @@ export interface HudConfig {
     showSeparators: boolean;
     pathLevels: 1 | 2 | 3;
     layout: RowId[];
+    rows: Record<RowId, CellId[]>;
     gitStatus: {
         enabled: boolean;
         showDirty: boolean;

@@ -300,8 +300,11 @@ export function render(ctx: RenderContext): void {
   const outputLines: string[] = [];
 
   for (const rowId of layout) {
-    const row: Row | undefined = DEFAULT_ROWS.get(rowId);
-    if (!row) continue;
+    const defaultRow: Row | undefined = DEFAULT_ROWS.get(rowId);
+    if (!defaultRow) continue;
+
+    const configCells = ctx.config?.rows?.[rowId];
+    const row: Row = configCells ? { id: rowId, cells: configCells } : defaultRow;
 
     const rendered = renderRow(row, ctx);
     if (!rendered) continue;

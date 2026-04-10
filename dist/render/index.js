@@ -251,9 +251,11 @@ export function render(ctx) {
     const terminalWidth = getTerminalWidth();
     const outputLines = [];
     for (const rowId of layout) {
-        const row = DEFAULT_ROWS.get(rowId);
-        if (!row)
+        const defaultRow = DEFAULT_ROWS.get(rowId);
+        if (!defaultRow)
             continue;
+        const configCells = ctx.config?.rows?.[rowId];
+        const row = configCells ? { id: rowId, cells: configCells } : defaultRow;
         const rendered = renderRow(row, ctx);
         if (!rendered)
             continue;

@@ -2,12 +2,22 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import { getHudPluginDir } from './claude-config-dir.js';
+import { VALID_CELL_IDS } from './render/cell-registry.js';
 import { DEFAULT_LAYOUT } from './render/layout.js';
+import { DEFAULT_ROWS } from './render/row.js';
+function defaultRows() {
+    const result = {};
+    for (const [id, row] of DEFAULT_ROWS) {
+        result[id] = [...row.cells];
+    }
+    return result;
+}
 export const DEFAULT_CONFIG = {
     language: 'en',
     showSeparators: false,
     pathLevels: 1,
     layout: [...DEFAULT_LAYOUT],
+    rows: defaultRows(),
     gitStatus: {
         enabled: true,
         showDirty: true,
@@ -98,7 +108,7 @@ function validateColorValue(value) {
         return true;
     return false;
 }
-const VALID_ROW_IDS = new Set(['session', 'location', 'memory', 'environment', 'activity', 'tokens']);
+const VALID_ROW_IDS = new Set(DEFAULT_ROWS.keys());
 function validateThreshold(value, max = 100) {
     if (typeof value !== 'number')
         return 0;
@@ -252,7 +262,16 @@ export function mergeConfig(userConfig) {
             ? userConfig.colors.custom
             : DEFAULT_CONFIG.colors.custom,
     };
-    return { language, showSeparators, pathLevels, layout, gitStatus, display, colors };
+    const rows = defaultRows();
+    if (userConfig.rows) {
+        for (const rowId of VALID_ROW_IDS) {
+            const userCells = userConfig.rows[rowId];
+            if (Array.isArray(userCells)) {
+                rows[rowId] = userCells.filter((id) => VALID_CELL_IDS.has(id));
+            }
+        }
+    }
+    return { language, showSeparators, pathLevels, layout, rows, gitStatus, display, colors };
 }
 export async function loadConfig() {
     const configPath = getConfigPath();

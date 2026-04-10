@@ -435,3 +435,39 @@ test('mergeConfig rejects invalid hex strings', () => {
   assert.equal(config.colors.usage, DEFAULT_CONFIG.colors.usage);
   assert.equal(config.colors.warning, DEFAULT_CONFIG.colors.warning);
 });
+
+// --- rows config ---
+
+test('mergeConfig: rows config overrides cell order for a row', () => {
+  const config = mergeConfig({
+    rows: { session: ['cost', 'model', 'context'] },
+  });
+  assert.deepEqual(config.rows.session, ['cost', 'model', 'context']);
+});
+
+test('mergeConfig: rows config leaves unspecified rows at default', () => {
+  const config = mergeConfig({
+    rows: { session: ['cost', 'model', 'context'] },
+  });
+  assert.deepEqual(config.rows.location, DEFAULT_CONFIG.rows.location);
+});
+
+test('mergeConfig: rows config filters out invalid cell ids', () => {
+  const config = mergeConfig({
+    rows: { session: ['model', 'invalid-cell', 'context'] },
+  });
+  assert.deepEqual(config.rows.session, ['model', 'context']);
+});
+
+test('mergeConfig: rows config with empty array hides all cells in that row', () => {
+  const config = mergeConfig({
+    rows: { session: [] },
+  });
+  assert.deepEqual(config.rows.session, []);
+});
+
+test('mergeConfig: rows defaults to DEFAULT_ROWS cells when not specified', () => {
+  const config = mergeConfig({});
+  assert.deepEqual(config.rows.session, DEFAULT_CONFIG.rows.session);
+  assert.deepEqual(config.rows.location, DEFAULT_CONFIG.rows.location);
+});

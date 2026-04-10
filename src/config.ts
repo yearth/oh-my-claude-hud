@@ -4,7 +4,10 @@ import * as os from 'node:os';
 import { getHudPluginDir } from './claude-config-dir.js';
 import type { Language } from './i18n/types.js';
 import type { RowId } from './render/row.js';
+import type { CellId } from './render/cell-registry.js';
+import { VALID_CELL_IDS } from './render/cell-registry.js';
 import { DEFAULT_LAYOUT } from './render/layout.js';
+import { DEFAULT_ROWS } from './render/row.js';
 
 export type AutocompactBufferMode = 'enabled' | 'disabled';
 export type ContextValueMode = 'percent' | 'tokens' | 'remaining' | 'both';
@@ -49,6 +52,7 @@ export interface HudConfig {
   showSeparators: boolean;
   pathLevels: 1 | 2 | 3;
   layout: RowId[];
+  rows: Record<RowId, CellId[]>;
   gitStatus: {
     enabled: boolean;
     showDirty: boolean;
@@ -89,11 +93,20 @@ export interface HudConfig {
   colors: HudColorOverrides;
 }
 
+function defaultRows(): Record<RowId, CellId[]> {
+  const result = {} as Record<RowId, CellId[]>;
+  for (const [id, row] of DEFAULT_ROWS) {
+    result[id] = [...row.cells];
+  }
+  return result;
+}
+
 export const DEFAULT_CONFIG: HudConfig = {
   language: 'en',
   showSeparators: false,
   pathLevels: 1,
   layout: [...DEFAULT_LAYOUT],
+  rows: defaultRows(),
   gitStatus: {
     enabled: true,
     showDirty: true,
@@ -191,7 +204,7 @@ function validateColorValue(value: unknown): value is HudColorValue {
   return false;
 }
 
-const VALID_ROW_IDS = new Set<RowId>(['session', 'location', 'memory', 'environment', 'activity', 'tokens']);
+const VALID_ROW_IDS = new Set<RowId>(DEFAULT_ROWS.keys());
 
 function validateThreshold(value: unknown, max = 100): number {
   if (typeof value !== 'number') return 0;
@@ -355,7 +368,17 @@ export function mergeConfig(userConfig: Partial<HudConfig>): HudConfig {
       : DEFAULT_CONFIG.colors.custom,
   };
 
-  return { language, showSeparators, pathLevels, layout, gitStatus, display, colors };
+  const rows = defaultRows();
+  if (userConfig.rows) {
+    for (const rowId of VALID_ROW_IDS) {
+      const userCells = userConfig.rows[rowId];
+      if (Array.isArray(userCells)) {
+        rows[rowId] = userCells.filter((id): id is CellId => VALID_CELL_IDS.has(id as CellId));
+      }
+    }
+  }
+
+  return { language, showSeparators, pathLevels, layout, rows, gitStatus, display, colors };
 }
 
 export async function loadConfig(): Promise<HudConfig> {

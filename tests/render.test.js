@@ -1961,3 +1961,53 @@ test('renderCell worktree returns worktree cell string', () => {
   assert.ok(result !== null);
   assert.ok(stripAnsi(result).includes('my-project:(base)'), `Expected worktree in: ${result}`);
 });
+
+// ===== Row and Layout tests =====
+import { renderRow, DEFAULT_ROWS } from '../dist/render/row.js';
+import { DEFAULT_LAYOUT } from '../dist/render/layout.js';
+
+test('DEFAULT_ROWS has session row with model, duration, cost, context', () => {
+  const row = DEFAULT_ROWS.get('session');
+  assert.ok(row, 'session row should exist');
+  assert.ok(row.cells.includes('model'), 'session should include model');
+  assert.ok(row.cells.includes('duration'), 'session should include duration');
+  assert.ok(row.cells.includes('cost'), 'session should include cost');
+  assert.ok(row.cells.includes('context'), 'session should include context');
+});
+
+test('DEFAULT_ROWS has location row with directory, git, worktree', () => {
+  const row = DEFAULT_ROWS.get('location');
+  assert.ok(row, 'location row should exist');
+  assert.ok(row.cells.includes('directory'), 'location should include directory');
+  assert.ok(row.cells.includes('git'), 'location should include git');
+  assert.ok(row.cells.includes('worktree'), 'location should include worktree');
+});
+
+test('DEFAULT_LAYOUT contains session before location', () => {
+  const sessionIdx = DEFAULT_LAYOUT.indexOf('session');
+  const locationIdx = DEFAULT_LAYOUT.indexOf('location');
+  assert.ok(sessionIdx !== -1, 'layout should include session');
+  assert.ok(locationIdx !== -1, 'layout should include location');
+  assert.ok(sessionIdx < locationIdx, 'session should come before location');
+});
+
+test('renderRow filters null cells and joins with │', () => {
+  const ctx = baseContext();
+  ctx.stdin.model = { display_name: 'claude-opus-4-6' };
+  ctx.config.display.showModel = true;
+  ctx.config.display.showDuration = false;
+  ctx.config.display.showCost = false;
+  const result = renderRow({ id: 'session', cells: ['model', 'duration'] }, ctx);
+  assert.ok(result !== null);
+  const plain = result.replace(/\x1b\[[0-9;]*m/g, '').replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g, '');
+  assert.ok(plain.includes('claude-opus-4-6'));
+  assert.ok(!plain.includes('│'), 'single non-null cell should not have separator');
+});
+
+test('renderRow returns null when all cells are null', () => {
+  const ctx = baseContext();
+  ctx.config.display.showModel = false;
+  ctx.config.display.showDuration = false;
+  const result = renderRow({ id: 'session', cells: ['model', 'duration'] }, ctx);
+  assert.equal(result, null);
+});

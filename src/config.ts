@@ -3,8 +3,8 @@ import * as path from 'node:path';
 import * as os from 'node:os';
 import { getHudPluginDir } from './claude-config-dir.js';
 import type { Language } from './i18n/types.js';
-
-export type LineLayoutType = 'compact' | 'expanded';
+import type { RowId } from './render/row.js';
+import { DEFAULT_LAYOUT } from './render/layout.js';
 
 export type AutocompactBufferMode = 'enabled' | 'disabled';
 export type ContextValueMode = 'percent' | 'tokens' | 'remaining' | 'both';
@@ -17,7 +17,6 @@ export type ContextValueMode = 'percent' | 'tokens' | 'remaining' | 'both';
  *   short:   Strip context suffix AND "Claude " prefix (e.g. "Opus 4.6")
  */
 export type ModelFormatMode = 'full' | 'compact' | 'short';
-export type HudElement = 'project' | 'context' | 'usage' | 'memory' | 'environment' | 'tools' | 'agents' | 'todos';
 export type HudColorName =
   | 'dim'
   | 'red'
@@ -45,25 +44,11 @@ export interface HudColorOverrides {
   custom: HudColorValue;
 }
 
-export const DEFAULT_ELEMENT_ORDER: HudElement[] = [
-  'project',
-  'context',
-  'usage',
-  'memory',
-  'environment',
-  'tools',
-  'agents',
-  'todos',
-];
-
-const KNOWN_ELEMENTS = new Set<HudElement>(DEFAULT_ELEMENT_ORDER);
-
 export interface HudConfig {
   language: Language;
-  lineLayout: LineLayoutType;
   showSeparators: boolean;
   pathLevels: 1 | 2 | 3;
-  elementOrder: HudElement[];
+  layout: RowId[];
   gitStatus: {
     enabled: boolean;
     showDirty: boolean;
@@ -106,10 +91,9 @@ export interface HudConfig {
 
 export const DEFAULT_CONFIG: HudConfig = {
   language: 'en',
-  lineLayout: 'expanded',
   showSeparators: false,
   pathLevels: 1,
-  elementOrder: [...DEFAULT_ELEMENT_ORDER],
+  layout: [...DEFAULT_LAYOUT],
   gitStatus: {
     enabled: true,
     showDirty: true,
@@ -171,10 +155,6 @@ function validatePathLevels(value: unknown): value is 1 | 2 | 3 {
   return value === 1 || value === 2 || value === 3;
 }
 
-function validateLineLayout(value: unknown): value is LineLayoutType {
-  return value === 'compact' || value === 'expanded';
-}
-
 function validateAutocompactBuffer(value: unknown): value is AutocompactBufferMode {
   return value === 'enabled' || value === 'disabled';
 }
@@ -211,60 +191,7 @@ function validateColorValue(value: unknown): value is HudColorValue {
   return false;
 }
 
-function validateElementOrder(value: unknown): HudElement[] {
-  if (!Array.isArray(value) || value.length === 0) {
-    return [...DEFAULT_ELEMENT_ORDER];
-  }
-
-  const seen = new Set<HudElement>();
-  const elementOrder: HudElement[] = [];
-
-  for (const item of value) {
-    if (typeof item !== 'string' || !KNOWN_ELEMENTS.has(item as HudElement)) {
-      continue;
-    }
-
-    const element = item as HudElement;
-    if (seen.has(element)) {
-      continue;
-    }
-
-    seen.add(element);
-    elementOrder.push(element);
-  }
-
-  return elementOrder.length > 0 ? elementOrder : [...DEFAULT_ELEMENT_ORDER];
-}
-
-interface LegacyConfig {
-  layout?: 'default' | 'separators' | Record<string, unknown>;
-}
-
-function migrateConfig(userConfig: Partial<HudConfig> & LegacyConfig): Partial<HudConfig> {
-  const migrated = { ...userConfig } as Partial<HudConfig> & LegacyConfig;
-
-  if ('layout' in userConfig && !('lineLayout' in userConfig)) {
-    if (typeof userConfig.layout === 'string') {
-      // Legacy string migration (v0.0.x → v0.1.x)
-      if (userConfig.layout === 'separators') {
-        migrated.lineLayout = 'compact';
-        migrated.showSeparators = true;
-      } else {
-        migrated.lineLayout = 'compact';
-        migrated.showSeparators = false;
-      }
-    } else if (typeof userConfig.layout === 'object' && userConfig.layout !== null) {
-      // Object layout written by third-party tools — extract nested fields
-      const obj = userConfig.layout as Record<string, unknown>;
-      if (typeof obj.lineLayout === 'string') migrated.lineLayout = obj.lineLayout as any;
-      if (typeof obj.showSeparators === 'boolean') migrated.showSeparators = obj.showSeparators;
-      if (typeof obj.pathLevels === 'number') migrated.pathLevels = obj.pathLevels as any;
-    }
-    delete migrated.layout;
-  }
-
-  return migrated;
-}
+const VALID_ROW_IDS = new Set<string>(['session', 'location', 'memory', 'environment', 'activity', 'tokens']);
 
 function validateThreshold(value: unknown, max = 100): number {
   if (typeof value !== 'number') return 0;
@@ -279,24 +206,25 @@ function validateCountThreshold(value: unknown): number {
 }
 
 export function mergeConfig(userConfig: Partial<HudConfig>): HudConfig {
-  const migrated = migrateConfig(userConfig);
-  const language = validateLanguage(migrated.language)
-    ? migrated.language
+  const language = validateLanguage(userConfig.language)
+    ? userConfig.language
     : DEFAULT_CONFIG.language;
 
-  const lineLayout = validateLineLayout(migrated.lineLayout)
-    ? migrated.lineLayout
-    : DEFAULT_CONFIG.lineLayout;
-
-  const showSeparators = typeof migrated.showSeparators === 'boolean'
-    ? migrated.showSeparators
+  const showSeparators = typeof userConfig.showSeparators === 'boolean'
+    ? userConfig.showSeparators
     : DEFAULT_CONFIG.showSeparators;
 
-  const pathLevels = validatePathLevels(migrated.pathLevels)
-    ? migrated.pathLevels
+  const pathLevels = validatePathLevels(userConfig.pathLevels)
+    ? userConfig.pathLevels
     : DEFAULT_CONFIG.pathLevels;
 
-  const elementOrder = validateElementOrder(migrated.elementOrder);
+  const rawLayout: RowId[] = Array.isArray(userConfig.layout)
+    ? (userConfig.layout as string[]).filter(id => VALID_ROW_IDS.has(id)) as RowId[]
+    : [...DEFAULT_LAYOUT];
+
+  const layout = rawLayout.length > 0 ? rawLayout : [...DEFAULT_LAYOUT];
+
+  const migrated = userConfig;
 
   const gitStatus = {
     enabled: typeof migrated.gitStatus?.enabled === 'boolean'
@@ -429,7 +357,7 @@ export function mergeConfig(userConfig: Partial<HudConfig>): HudConfig {
       : DEFAULT_CONFIG.colors.custom,
   };
 
-  return { language, lineLayout, showSeparators, pathLevels, elementOrder, gitStatus, display, colors };
+  return { language, showSeparators, pathLevels, layout, gitStatus, display, colors };
 }
 
 export async function loadConfig(): Promise<HudConfig> {

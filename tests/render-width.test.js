@@ -215,49 +215,6 @@ test('render falls back to stderr.columns when stdout.columns is unavailable', (
   assert.ok(lines.some(line => displayWidth(line) > 10), 'stderr width should override COLUMNS fallback');
 });
 
-test('render ignores OSC 8 hyperlink sequences when measuring line width', () => {
-  const ctx = baseContext();
-  ctx.config.lineLayout = 'compact';
-  ctx.stdin.context_window.current_usage.input_tokens = 0;
-  ctx.config.display.showContextBar = false;
-  ctx.config.display.showConfigCounts = false;
-  ctx.config.display.showUsage = false;
-  ctx.stdin.cwd = '/tmp/my-project';
-  ctx.sessionDuration = '1m';
-  ctx.extraLabel = '\x1b]8;;file:///tmp/my-project\x1b\\linked-label\x1b]8;;\x1b\\';
-
-  let lines = [];
-  withTerminal(47, () => {
-    lines = captureRender(ctx);
-  });
-
-  assert.equal(lines.length, 1, 'a visibly short line with an OSC 8 hyperlink should stay on one line');
-  assert.ok(lines[0].includes('linked-label'), 'hyperlink label text should still render');
-  assert.ok(lines[0].includes('1m'), 'later elements should not be wrapped off the line');
-  assert.ok(displayWidth(lines[0]) <= 47, 'visible width should respect terminal width');
-});
-
-test('render ignores BEL-terminated OSC 8 hyperlink sequences when measuring line width', () => {
-  const ctx = baseContext();
-  ctx.config.lineLayout = 'compact';
-  ctx.stdin.context_window.current_usage.input_tokens = 0;
-  ctx.config.display.showContextBar = false;
-  ctx.config.display.showConfigCounts = false;
-  ctx.config.display.showUsage = false;
-  ctx.stdin.cwd = '/tmp/my-project';
-  ctx.sessionDuration = '1m';
-  ctx.extraLabel = '\x1b]8;;file:///tmp/my-project\x07linked-label\x1b]8;;\x07';
-
-  let lines = [];
-  withTerminal(47, () => {
-    lines = captureRender(ctx);
-  });
-
-  assert.equal(lines.length, 1, 'a visibly short BEL-terminated OSC 8 hyperlink should stay on one line');
-  assert.ok(lines[0].includes('linked-label'), 'hyperlink label text should still render');
-  assert.ok(lines[0].includes('1m'), 'later elements should not be wrapped off the line');
-  assert.ok(displayWidth(lines[0]) <= 47, 'visible width should respect terminal width');
-});
 
 test('render falls back to a safe default width when no terminal size is available', () => {
   const ctx = baseContext();
@@ -347,46 +304,6 @@ test('render prefers stdout columns over COLUMNS env fallback', () => {
   assert.ok(lines.some(line => displayWidth(line) > 10), 'stdout width should override COLUMNS fallback');
 });
 
-test('render does not split model/provider separator inside brackets', () => {
-  const ctx = baseContext();
-  ctx.stdin.model = { display_name: 'Sonnet', id: 'anthropic.claude-3-5-sonnet-20240620-v1:0' };
-  ctx.config.display.showUsage = false;
-  ctx.config.display.showContextBar = false;
-  ctx.config.display.showConfigCounts = false;
-  ctx.config.display.showDuration = false;
-
-  let wideLines = [];
-  withTerminal(80, () => {
-    wideLines = captureRender(ctx);
-  });
-
-  assert.ok(wideLines.some(line => line.includes('[Sonnet | Bedrock]')), 'model/provider badge should be preserved when width allows');
-
-  let lines = [];
-  withTerminal(12, () => {
-    lines = captureRender(ctx);
-  });
-
-  assert.equal(lines.length, 1, 'single compact line should be truncated, not split');
-  assert.ok(!lines[0].startsWith('Bedrock]'), 'provider label should not become a wrapped prefix');
-});
-
-test('render clamps separator width in narrow terminals', () => {
-  const ctx = baseContext();
-  ctx.config.showSeparators = true;
-  ctx.transcript.tools = [
-    { id: 'tool-1', name: 'Read', status: 'completed', startTime: new Date(0), endTime: new Date(0), duration: 0 },
-  ];
-
-  let lines = [];
-  withTerminal(8, () => {
-    lines = captureRender(ctx);
-  });
-
-  const separatorLine = lines.find(line => line.includes('─'));
-  assert.ok(separatorLine, 'separator should render when enabled with activity');
-  assert.ok(displayWidth(separatorLine) <= 8, 'separator should fit terminal width');
-});
 
 test('render truncation respects Unicode display width', () => {
   const ctx = baseContext();

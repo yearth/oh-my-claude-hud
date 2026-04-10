@@ -60,3 +60,6 @@ bun.lock
 
 # Development plans and internal docs
 docs/
+
+# Superpowers internal files
+.superpowers/

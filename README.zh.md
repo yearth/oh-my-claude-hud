@@ -1,8 +1,8 @@
-# Claude HUD Enhanced
+# Oh My Claude HUD
 
 [jarrodwatts/claude-hud](https://github.com/jarrodwatts/claude-hud) 的 fork 版本，重构了渲染引擎，并新增了 git worktree 显示支持。
 
-[![License](https://img.shields.io/github/license/yearth/claude-hud-enhanced?v=2)](LICENSE)
+[![License](https://img.shields.io/github/license/yearth/oh-my-claude-hud?v=2)](LICENSE)
 
 > **查看原版** → [jarrodwatts/claude-hud](https://github.com/jarrodwatts/claude-hud)
 
@@ -61,8 +61,8 @@ Layout（有序的 RowId 列表）
 **第一步：Clone 仓库**
 
 ```bash
-git clone https://github.com/yearth/claude-hud-enhanced ~/path/to/claude-hud-enhanced
-cd ~/path/to/claude-hud-enhanced
+git clone https://github.com/yearth/oh-my-claude-hud ~/path/to/oh-my-claude-hud
+cd ~/path/to/oh-my-claude-hud
 npm ci && npm run build
 ```
 
@@ -71,7 +71,7 @@ npm ci && npm run build
 ```bash
 #!/bin/sh
 # ~/.claude/claude-hud-wrapper.sh
-exec node /absolute/path/to/claude-hud-enhanced/dist/index.js "$@"
+exec node /absolute/path/to/oh-my-claude-hud/dist/index.js "$@"
 ```
 
 ```bash
@@ -137,8 +137,8 @@ chmod +x ~/.claude/claude-hud-wrapper.sh
 ## 开发
 
 ```bash
-git clone https://github.com/yearth/claude-hud-enhanced
-cd claude-hud-enhanced
+git clone https://github.com/yearth/oh-my-claude-hud
+cd oh-my-claude-hud
 npm ci && npm run build
 npm test
 ```

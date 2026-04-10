@@ -1,8 +1,8 @@
-# Claude HUD Enhanced
+# Oh My Claude HUD
 
 A fork of [jarrodwatts/claude-hud](https://github.com/jarrodwatts/claude-hud) with a restructured render engine and git worktree support.
 
-[![License](https://img.shields.io/github/license/yearth/claude-hud-enhanced?v=2)](LICENSE)
+[![License](https://img.shields.io/github/license/yearth/oh-my-claude-hud?v=2)](LICENSE)
 
 > **Looking for the original?** → [jarrodwatts/claude-hud](https://github.com/jarrodwatts/claude-hud)
 
@@ -61,8 +61,8 @@ When you're working inside a git worktree, the `location` row now shows which wo
 **Step 1: Clone**
 
 ```bash
-git clone https://github.com/yearth/claude-hud-enhanced ~/path/to/claude-hud-enhanced
-cd ~/path/to/claude-hud-enhanced
+git clone https://github.com/yearth/oh-my-claude-hud ~/path/to/oh-my-claude-hud
+cd ~/path/to/oh-my-claude-hud
 npm ci && npm run build
 ```
 
@@ -71,7 +71,7 @@ npm ci && npm run build
 ```bash
 #!/bin/sh
 # ~/.claude/claude-hud-wrapper.sh
-exec node /absolute/path/to/claude-hud-enhanced/dist/index.js "$@"
+exec node /absolute/path/to/oh-my-claude-hud/dist/index.js "$@"
 ```
 
 ```bash
@@ -137,8 +137,8 @@ All original options are still supported. See the [original README](https://gith
 ## Development
 
 ```bash
-git clone https://github.com/yearth/claude-hud-enhanced
-cd claude-hud-enhanced
+git clone https://github.com/yearth/oh-my-claude-hud
+cd oh-my-claude-hud
 npm ci && npm run build
 npm test
 ```

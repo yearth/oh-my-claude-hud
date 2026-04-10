@@ -1,5 +1,5 @@
 import type { Language } from './i18n/types.js';
-export type LineLayoutType = 'compact' | 'expanded';
+import type { RowId } from './render/row.js';
 export type AutocompactBufferMode = 'enabled' | 'disabled';
 export type ContextValueMode = 'percent' | 'tokens' | 'remaining' | 'both';
 /**
@@ -10,7 +10,6 @@ export type ContextValueMode = 'percent' | 'tokens' | 'remaining' | 'both';
  *   short:   Strip context suffix AND "Claude " prefix (e.g. "Opus 4.6")
  */
 export type ModelFormatMode = 'full' | 'compact' | 'short';
-export type HudElement = 'project' | 'context' | 'usage' | 'memory' | 'environment' | 'tools' | 'agents' | 'todos';
 export type HudColorName = 'dim' | 'red' | 'green' | 'yellow' | 'magenta' | 'cyan' | 'brightBlue' | 'brightMagenta';
 /** A color value: named preset, 256-color index (0-255), or hex string (#rrggbb). */
 export type HudColorValue = HudColorName | number | string;
@@ -27,18 +26,17 @@ export interface HudColorOverrides {
     label: HudColorValue;
     custom: HudColorValue;
 }
-export declare const DEFAULT_ELEMENT_ORDER: HudElement[];
 export interface HudConfig {
     language: Language;
-    lineLayout: LineLayoutType;
     showSeparators: boolean;
     pathLevels: 1 | 2 | 3;
-    elementOrder: HudElement[];
+    layout: RowId[];
     gitStatus: {
         enabled: boolean;
         showDirty: boolean;
         showAheadBehind: boolean;
         showFileStats: boolean;
+        showWorktree: boolean;
         pushWarningThreshold: number;
         pushCriticalThreshold: number;
     };

@@ -1,0 +1,58 @@
+<h2>HUD 布局方案</h2>
+<p class="subtitle">目标：模型/时长/cost/context 一行，目录/git/worktree 一行</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="font-family: monospace; font-size: 12px; background: #1e1f29; color: #f8f8f2; padding: 12px; border-radius: 6px; line-height: 1.8;">
+        <div style="color:#8be9fd;">[claude-opus-4-6]</div>
+        <div><span style="color:#6272a4;">⏱ 3h 4m</span> <span style="color:#f1fa8c;">│</span> <span style="color:#ff79c6;">Cost $27.74</span> <span style="color:#f1fa8c;">│</span> <span style="color:#50fa7b;">Context ▓░░ 14%</span></div>
+        <div style="color:#6272a4; font-size:10px;">Approx RAM ▓░ 10 GB / 24 GB (42%)</div>
+        <div><span style="color:#f1fa8c;">pc-apply</span> <span style="color:#ff79c6;">git:(</span><span style="color:#8be9fd;">feature/css/wjl*</span><span style="color:#ff79c6;">)</span> <span style="color:#8be9fd;">󰙅 pc-apply:(base)</span></div>
+        <div style="color:#6272a4; font-size:10px;">2 CLAUDE.md | 14 rules | 4 MCPs | 7 hooks</div>
+        <div style="color:#50fa7b; font-size:10px;">✓ Bash ×9 | ✓ Edit ×8 | ✓ Read ×2</div>
+        <div style="color:#50fa7b; font-size:10px;">✓ All todos complete (1/1)</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>方案 A：模型独占第一行，其余合并</h3>
+      <p>模型单独一行，时长/cost/context 合并第二行，目录+git+worktree 第三行。最清晰的层级感。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="font-family: monospace; font-size: 12px; background: #1e1f29; color: #f8f8f2; padding: 12px; border-radius: 6px; line-height: 1.8;">
+        <div><span style="color:#8be9fd;">[claude-opus-4-6]</span> <span style="color:#f1fa8c;">│</span> <span style="color:#6272a4;">⏱ 3h 4m</span> <span style="color:#f1fa8c;">│</span> <span style="color:#ff79c6;">Cost $27.74</span> <span style="color:#f1fa8c;">│</span> <span style="color:#50fa7b;">Context ▓░░ 14%</span></div>
+        <div style="color:#6272a4; font-size:10px;">Approx RAM ▓░ 10 GB / 24 GB (42%)</div>
+        <div><span style="color:#f1fa8c;">pc-apply</span> <span style="color:#ff79c6;">git:(</span><span style="color:#8be9fd;">feature/css/wjl*</span><span style="color:#ff79c6;">)</span> <span style="color:#8be9fd;">󰙅 pc-apply:(base)</span></div>
+        <div style="color:#6272a4; font-size:10px;">2 CLAUDE.md | 14 rules | 4 MCPs | 7 hooks</div>
+        <div style="color:#50fa7b; font-size:10px;">✓ Bash ×9 | ✓ Edit ×8 | ✓ Read ×2</div>
+        <div style="color:#50fa7b; font-size:10px;">✓ All todos complete (1/1)</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>方案 B：模型+时长+cost+context 同一行</h3>
+      <p>你要求的目标布局：所有「会话元信息」合并第一行，目录+git+worktree 独占一行。行数最少，信息密度最高。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="font-family: monospace; font-size: 12px; background: #1e1f29; color: #f8f8f2; padding: 12px; border-radius: 6px; line-height: 1.8;">
+        <div><span style="color:#8be9fd;">[claude-opus-4-6]</span> <span style="color:#f1fa8c;">│</span> <span style="color:#6272a4;">⏱ 3h 4m</span> <span style="color:#f1fa8c;">│</span> <span style="color:#ff79c6;">Cost $27.74</span> <span style="color:#f1fa8c;">│</span> <span style="color:#50fa7b;">Context ▓░░ 14%</span></div>
+        <div style="color:#6272a4; font-size:10px;">Approx RAM ▓░ 10 GB / 24 GB (42%)</div>
+        <div><span style="color:#f1fa8c;">pc-apply</span> <span style="color:#f1fa8c;">│</span> <span style="color:#ff79c6;">git:(</span><span style="color:#8be9fd;">feature/css/wjl*</span><span style="color:#ff79c6;">)</span> <span style="color:#f1fa8c;">│</span> <span style="color:#8be9fd;">󰙅 pc-apply:(base)</span></div>
+        <div style="color:#6272a4; font-size:10px;">2 CLAUDE.md | 14 rules | 4 MCPs | 7 hooks</div>
+        <div style="color:#50fa7b; font-size:10px;">✓ Bash ×9 | ✓ Edit ×8 | ✓ Read ×2</div>
+        <div style="color:#50fa7b; font-size:10px;">✓ All todos complete (1/1)</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>方案 C：方案 B + 目录/git/worktree 用 │ 分隔</h3>
+      <p>与方案 B 相同，但目录、git、worktree 三个 cell 之间加 │ 分隔符，视觉上更清晰独立。</p>
+    </div>
+  </div>
+
+</div>

@@ -1,4 +1,5 @@
 export const VALID_CELL_IDS = new Set([
+    'agent-identity',
     'model', 'duration', 'cost', 'context',
     'directory', 'git', 'worktree',
     'memory', 'environment',

@@ -5,8 +5,8 @@ export type Layout = RowId[];
 export const DEFAULT_LAYOUT: Layout = [
   'session',
   'memory',
-  'location',
   'environment',
   'activity',
   'tokens',
+  'location',
 ];

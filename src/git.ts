@@ -249,9 +249,9 @@ export async function getWorktreeInfo(cwd?: string): Promise<WorktreeInfo | null
 
     if (!currentEntry) return null;
 
-    const isMain = currentEntry === mainEntry;
-    const worktreeName = isMain ? 'base' : path.basename(currentEntry.path);
+    if (currentEntry === mainEntry) return null;
 
+    const worktreeName = path.basename(currentEntry.path);
     return { repoName, worktreeName };
   } catch {
     return null;

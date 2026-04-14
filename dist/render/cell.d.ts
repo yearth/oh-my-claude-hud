@@ -2,6 +2,7 @@ import type { RenderContext } from '../types.js';
 export type { CellId, Cell } from './cell-registry.js';
 export { registerCell } from './cell-registry.js';
 export declare function renderCell(id: string, ctx: RenderContext): string | null;
+import './cells/agent-identity.js';
 import './cells/model.js';
 import './cells/duration.js';
 import './cells/cost.js';

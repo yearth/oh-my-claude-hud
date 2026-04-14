@@ -1,18 +1,16 @@
 # Oh My Claude HUD
 
-[jarrodwatts/claude-hud](https://github.com/jarrodwatts/claude-hud) 的 fork 版本，重构了渲染引擎，并新增了 git worktree 显示支持。
+[jarrodwatts/claude-hud](https://github.com/jarrodwatts/claude-hud) 的 fork，重构了渲染引擎，新增 git worktree 显示和 agent 身份识别。
 
-[![License](https://img.shields.io/github/license/yearth/oh-my-claude-hud?v=2)](LICENSE)
-
-> **查看原版** → [jarrodwatts/claude-hud](https://github.com/jarrodwatts/claude-hud)
+> 完整功能文档请参考[原版 README](https://github.com/jarrodwatts/claude-hud#readme)。
 
 ---
 
 ## 与原版的区别
 
-### 1. 结构化布局引擎（Layout → Row → Cell）
+### 1. 灵活的布局引擎（Layout → Row → Cell）
 
-渲染引擎从原来的多个 monolithic line renderer 重写为三层可组合的 pipeline：
+原版的 HUD 布局是固定的。本 fork 将渲染引擎重写为三层可组合的 pipeline：
 
 ```
 Layout（有序的 RowId 列表）
@@ -20,45 +18,55 @@ Layout（有序的 RowId 列表）
        └─ Cell（单个可渲染单元）
 ```
 
-**默认布局**（6 行）：
+这让你可以做到原版不支持的事情——比如把某个 cell 移到另一行、调整行的顺序、或通过配置完全隐藏某一行：
 
-| Row | Cells |
-|-----|-------|
-| `session` | model、duration、cost、context |
-| `location` | directory、git、**worktree** |
+```json
+{
+  "layout": ["session", "activity", "location"],
+  "rows": {
+    "session": ["agent-identity", "model", "duration", "context"]
+  }
+}
+```
+
+**默认布局：**
+
+| Row | 默认 cells |
+|-----|------------|
+| `session` | agent-identity、model、duration、context |
 | `memory` | memory |
 | `environment` | environment |
 | `activity` | tools、agents、todos |
 | `tokens` | session-tokens、custom、usage |
+| `location` | directory、git、worktree |
 
-通过配置中的 `layout` 字段可以自由调整顺序或删减行：
+从 `layout` 中删除某个 row ID 即可隐藏该行。通过 `rows.<id>` 可以重排或替换某行内的 cell。
 
-```json
-{
-  "layout": ["session", "location", "activity", "tokens"]
-}
+### 2. Agent 身份 Cell
+
+同时运行多个 Claude Code session 时，`agent-identity` cell 会显示当前 session 注册的 agent 代号：
+
+```
+ʕ•ᴥ•ʔ bright-fox │ Opus 4.6 │ 22m │ Context 8%
 ```
 
-### 2. Git Worktree 显示
+从 `~/.agent/identity-<pid>` 读取。文件不存在时自动隐藏。
+
+### 3. Git Worktree 显示
 
 在 git worktree 中工作时，`location` 行会显示当前所在的 worktree：
 
 ```
-~/projects/my-repo  git:(main*)   my-repo:(feature-branch)
+~/projects/my-repo  git:(main)   my-repo:(feature-branch)
 ```
 
-- worktree cell 显示格式为 `repoName:(worktreeName)`
-- 主 worktree 显示为 `base`
-- 不在 worktree 中时自动隐藏
-- 通过 `gitStatus.showWorktree` 控制（默认：`true`）
+在主 worktree 中自动隐藏。通过 `gitStatus.showWorktree` 控制（默认：`true`）。
 
 ---
 
 ## 安装
 
-> **注意：** 本 fork 未发布到 Claude Code 插件市场，需要手动 clone 后本地使用。
-
-**第一步：Clone 仓库**
+**第一步：Clone 并构建**
 
 ```bash
 git clone https://github.com/yearth/oh-my-claude-hud ~/path/to/oh-my-claude-hud
@@ -69,14 +77,19 @@ npm ci && npm run build
 **第二步：创建 wrapper 脚本**
 
 ```bash
-#!/bin/sh
-# ~/.claude/claude-hud-wrapper.sh
-exec node /absolute/path/to/oh-my-claude-hud/dist/index.js "$@"
-```
-
-```bash
+cat > ~/.claude/claude-hud-wrapper.sh << 'EOF'
+#!/bin/bash
+NODE=/path/to/node
+HUD_SCRIPT=/path/to/oh-my-claude-hud/dist/index.js
+COLUMNS=$(tput cols 2>/dev/null || echo 200)
+export COLUMNS
+export CLAUDE_PID=$PPID
+"$NODE" "$HUD_SCRIPT"
+EOF
 chmod +x ~/.claude/claude-hud-wrapper.sh
 ```
+
+> `CLAUDE_PID=$PPID` 是 agent-identity cell 正常工作的必要条件。
 
 **第三步：配置 Claude Code 使用 wrapper**
 
@@ -98,56 +111,17 @@ chmod +x ~/.claude/claude-hud-wrapper.sh
 
 ---
 
-## 配置
-
-与原版相同，新增以下配置项：
-
-### 新增：`layout`
-
-替代原版的 `elementOrder` / `lineLayout`，为有序的 row ID 列表：
-
-```json
-{
-  "layout": ["session", "memory", "location", "environment", "activity", "tokens"]
-}
-```
-
-从列表中删除某个 row ID 即可隐藏该行。
-
-### 新增：`gitStatus.showWorktree`
-
-| 配置项 | 类型 | 默认值 | 说明 |
-|--------|------|--------|------|
-| `gitStatus.showWorktree` | boolean | `true` | 在 git worktree 中时显示 worktree cell |
-
-### 其他配置项
-
-所有原版配置项均保持兼容，完整参考见[原版 README](https://github.com/jarrodwatts/claude-hud#configuration)。
-
----
-
 ## 环境要求
 
 - Claude Code v1.0.80+
-- Node.js 18+ 或 Bun
+- Node.js 18+
 - 安装了 [Nerd Font](https://www.nerdfonts.com/) 的终端（用于显示 worktree 图标）
-
----
-
-## 开发
-
-```bash
-git clone https://github.com/yearth/oh-my-claude-hud
-cd oh-my-claude-hud
-npm ci && npm run build
-npm test
-```
 
 ---
 
 ## 致谢
 
-基于 [jarrodwatts/claude-hud](https://github.com/jarrodwatts/claude-hud) 构建，MIT 协议。原版插件基础设施由 [@jarrodwatts](https://github.com/jarrodwatts) 开发。
+基于 [jarrodwatts/claude-hud](https://github.com/jarrodwatts/claude-hud) 构建，MIT 协议。
 
 ## License
 

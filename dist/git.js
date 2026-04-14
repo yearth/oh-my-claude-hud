@@ -179,8 +179,9 @@ export async function getWorktreeInfo(cwd) {
         });
         if (!currentEntry)
             return null;
-        const isMain = currentEntry === mainEntry;
-        const worktreeName = isMain ? 'base' : path.basename(currentEntry.path);
+        if (currentEntry === mainEntry)
+            return null;
+        const worktreeName = path.basename(currentEntry.path);
         return { repoName, worktreeName };
     }
     catch {

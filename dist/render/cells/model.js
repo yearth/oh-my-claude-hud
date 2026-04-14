@@ -10,7 +10,7 @@ registerCell({
         const modelName = formatModelName(getModelName(ctx.stdin), display?.modelFormat, display?.modelOverride);
         const providerLabel = getProviderLabel(ctx.stdin);
         const modelDisplay = providerLabel ? `${modelName} | ${providerLabel}` : modelName;
-        return modelColor(`[${modelDisplay}]`, ctx.config?.colors);
+        return modelColor(modelDisplay, ctx.config?.colors);
     },
 });
 //# sourceMappingURL=model.js.map

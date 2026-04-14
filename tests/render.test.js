@@ -254,7 +254,7 @@ test('renderSessionLine handles root path gracefully', () => {
   const ctx = baseContext();
   ctx.stdin.cwd = '/';
   const line = renderSessionLine(ctx);
-  assert.ok(line.includes('[Opus]'));
+  assert.ok(line.includes('Opus'));
 });
 
 test('renderSessionLine supports token-based context display', () => {
@@ -331,7 +331,7 @@ test('renderSessionLine omits project name when cwd is undefined', () => {
   const ctx = baseContext();
   ctx.stdin.cwd = undefined;
   const line = renderSessionLine(ctx);
-  assert.ok(line.includes('[Opus]'));
+  assert.ok(line.includes('Opus'));
 });
 
 test('renderSessionLine includes session name when showSessionName is true', () => {
@@ -503,7 +503,7 @@ test('renderProjectLine uses configurable element colors', () => {
   ctx.config.colors.custom = '#ff6600';
 
   const line = renderProjectLine(ctx);
-  assert.ok(line?.includes('\x1b[38;5;214m[Opus]\x1b[0m'));
+  assert.ok(line?.includes('\x1b[38;5;214m') && line?.includes('Opus'));
   assert.ok(line?.includes('\x1b[38;5;82mmy-project\x1b[0m'));
   assert.ok(line?.includes('\x1b[38;5;220mgit:(\x1b[0m'));
   assert.ok(line?.includes('\x1b[38;2;51;255;0mmain\x1b[0m'));
@@ -1764,13 +1764,16 @@ test('renderCell worktree returns worktree cell string', () => {
 import { renderRow, DEFAULT_ROWS } from '../dist/render/row.js';
 import { DEFAULT_LAYOUT } from '../dist/render/layout.js';
 
-test('DEFAULT_ROWS has session row with model, duration, cost, context', () => {
+test('DEFAULT_ROWS has session row with model, duration, context', () => {
   const row = DEFAULT_ROWS.get('session');
   assert.ok(row, 'session row should exist');
   assert.ok(row.cells.includes('model'), 'session should include model');
   assert.ok(row.cells.includes('duration'), 'session should include duration');
-  assert.ok(row.cells.includes('cost'), 'session should include cost');
+  assert.ok(!row.cells.includes('cost'), 'session should not include cost');
   assert.ok(row.cells.includes('context'), 'session should include context');
+  const durationIdx = row.cells.indexOf('duration');
+  const contextIdx = row.cells.indexOf('context');
+  assert.ok(durationIdx < contextIdx, 'context should come after duration');
 });
 
 test('DEFAULT_ROWS has location row with directory, git, worktree', () => {

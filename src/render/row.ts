@@ -16,7 +16,7 @@ export interface Row {
 }
 
 export const DEFAULT_ROWS: Map<RowId, Row> = new Map([
-  ['session',     { id: 'session',     cells: ['model', 'duration', 'cost', 'context'] }],
+  ['session',     { id: 'session',     cells: ['agent-identity', 'model', 'duration', 'context'] }],
   ['location',    { id: 'location',    cells: ['directory', 'git', 'worktree'] }],
   ['memory',      { id: 'memory',      cells: ['memory'] }],
   ['environment', { id: 'environment', cells: ['environment'] }],

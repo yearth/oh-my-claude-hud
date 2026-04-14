@@ -15,6 +15,6 @@ registerCell({
     );
     const providerLabel = getProviderLabel(ctx.stdin);
     const modelDisplay = providerLabel ? `${modelName} | ${providerLabel}` : modelName;
-    return modelColor(`[${modelDisplay}]`, ctx.config?.colors);
+    return modelColor(modelDisplay, ctx.config?.colors);
   },
 });

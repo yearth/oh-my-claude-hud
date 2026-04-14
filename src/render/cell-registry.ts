@@ -1,6 +1,7 @@
 import type { RenderContext } from '../types.js';
 
 export type CellId =
+  | 'agent-identity'
   | 'model'
   | 'duration'
   | 'cost'
@@ -23,6 +24,7 @@ export interface Cell {
 }
 
 export const VALID_CELL_IDS = new Set<CellId>([
+  'agent-identity',
   'model', 'duration', 'cost', 'context',
   'directory', 'git', 'worktree',
   'memory', 'environment',

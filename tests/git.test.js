@@ -275,7 +275,7 @@ test('getWorktreeInfo returns null for non-git directory', async () => {
   }
 });
 
-test('getWorktreeInfo returns base for main worktree', async () => {
+test('getWorktreeInfo returns null for main worktree', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'claude-hud-wt-'));
   try {
     execFileSync('git', ['init'], { cwd: dir, stdio: 'ignore' });
@@ -284,9 +284,7 @@ test('getWorktreeInfo returns base for main worktree', async () => {
     execFileSync('git', ['commit', '--allow-empty', '-m', 'init'], { cwd: dir, stdio: 'ignore' });
 
     const result = await getWorktreeInfo(dir);
-    assert.ok(result !== null);
-    assert.equal(result.repoName, path.basename(dir));
-    assert.equal(result.worktreeName, 'base');
+    assert.equal(result, null);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

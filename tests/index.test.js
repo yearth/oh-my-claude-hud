@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { setLanguage } from "../dist/i18n/index.js";
 import { formatSessionDuration, main } from "../dist/index.js";
+import { DEFAULT_CONFIG } from "../dist/config.js";
 
 // Ensure tests run with English locale regardless of system LANG
 setLanguage("en");
@@ -250,6 +251,7 @@ test("main includes usageData in render context", async () => {
       mcpCount: 0,
       hooksCount: 0,
     }),
+    loadConfig: async () => ({ ...DEFAULT_CONFIG, display: { ...DEFAULT_CONFIG.display, showUsage: true } }),
     getGitBranch: async () => null,
     render: (ctx) => {
       renderedContext = ctx;
@@ -282,6 +284,7 @@ test("main uses stdin-native rate_limits when available", async () => {
       mcpCount: 0,
       hooksCount: 0,
     }),
+    loadConfig: async () => ({ ...DEFAULT_CONFIG, display: { ...DEFAULT_CONFIG.display, showUsage: true } }),
     getGitStatus: async () => null,
     render: (ctx) => {
       renderedContext = ctx;

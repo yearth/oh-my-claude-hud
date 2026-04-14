@@ -11,6 +11,7 @@ export function renderCell(id: string, ctx: RenderContext): string | null {
 }
 
 // Import all cells to trigger registration
+import './cells/agent-identity.js';
 import './cells/model.js';
 import './cells/duration.js';
 import './cells/cost.js';

@@ -7,6 +7,7 @@ export function renderCell(id, ctx) {
     return cell.render(ctx);
 }
 // Import all cells to trigger registration
+import './cells/agent-identity.js';
 import './cells/model.js';
 import './cells/duration.js';
 import './cells/cost.js';

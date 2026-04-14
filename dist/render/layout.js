@@ -1,9 +1,9 @@
 export const DEFAULT_LAYOUT = [
     'session',
     'memory',
-    'location',
     'environment',
     'activity',
     'tokens',
+    'location',
 ];
 //# sourceMappingURL=layout.js.map

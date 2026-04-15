@@ -66,6 +66,19 @@ Hidden automatically in the main worktree. Controlled by `gitStatus.showWorktree
 
 ## Install
 
+```bash
+curl -fsSL https://raw.githubusercontent.com/yearth/oh-my-claude-hud/main/install.sh | bash
+```
+
+Then reload Claude Code:
+
+```
+/reload-plugins
+```
+
+<details>
+<summary>Manual install</summary>
+
 **Step 1: Clone and build**
 
 ```bash
@@ -108,6 +121,8 @@ Edit `~/.claude/settings.json`:
 ```
 /reload-plugins
 ```
+
+</details>
 
 ---
 

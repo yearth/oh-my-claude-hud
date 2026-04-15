@@ -66,6 +66,19 @@ Layout（有序的 RowId 列表）
 
 ## 安装
 
+```bash
+curl -fsSL https://raw.githubusercontent.com/yearth/oh-my-claude-hud/main/install.sh | bash
+```
+
+然后在 Claude Code 中重载：
+
+```
+/reload-plugins
+```
+
+<details>
+<summary>手动安装</summary>
+
 **第一步：Clone 并构建**
 
 ```bash
@@ -108,6 +121,8 @@ chmod +x ~/.claude/claude-hud-wrapper.sh
 ```
 /reload-plugins
 ```
+
+</details>
 
 ---
 
